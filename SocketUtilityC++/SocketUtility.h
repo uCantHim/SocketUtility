@@ -125,7 +125,7 @@ namespace suc
 
 
 	/* Split a string */
-	static std::vector<std::string> sucSplitString(const std::string& to_str, const char delimiter)
+	static std::vector<std::string> splitString(const std::string& to_str, const char delimiter)
 	{
 		std::vector<std::string> result;
 		std::stringstream _str;
@@ -134,6 +134,37 @@ namespace suc
 		while (std::getline(_str, token, delimiter)) {
 			result.push_back(token);
 		}
+
+		return result;
+	}
+
+	/* Split a string at a delimiting character sequence. */
+	static std::vector<std::string> splitString(const std::string& str, const std::string& delimiter)
+	{
+		std::vector<std::string> result;
+
+		auto i = str.begin();
+		auto tokenStart = str.begin();
+		for (; i != str.end(); i++)
+		{
+			for (auto delim = delimiter.begin(), temp = i;
+				delim != delimiter.end() && temp != str.end();
+				delim++, temp++)
+			{
+				if (*temp != *delim)
+					break;
+				if (delim == delimiter.end() - 1)
+				{
+					result.emplace_back(std::string(tokenStart, i));
+					tokenStart = temp + 1;
+					i = temp; // Not (temp + 1) here because of the i++ in for-loop
+				}
+			}
+		}
+		// Append the remainder of the input string
+		auto remainingString = std::string(tokenStart, str.end());
+		if (!remainingString.empty())
+			result.push_back(remainingString);
 
 		return result;
 	}

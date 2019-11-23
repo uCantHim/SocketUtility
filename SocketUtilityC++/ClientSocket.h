@@ -99,7 +99,7 @@ namespace suc
 
 		ByteBuffer recvbuf{ STANDARD_BUF_SIZE };
 
-		bool _isClosed{ true };
+		bool _isClosed{ false };
 	};
 } // namespace suc
 

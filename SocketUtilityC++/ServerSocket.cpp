@@ -84,12 +84,11 @@ void suc::ServerSocket::close()
 	if (_isClosed) { return; }
 
 	int iResult = closesocket(socket);
-	if (iResult == WSAENOTSOCK) {
-		// This means that the socket does not exist anymore.
-		// This is the purpose of this method anyway, so do nothing.
-	}
-	else if (iResult == SOCKET_ERROR) {
-		sucHandleErrorCode(WSAGetLastError());
+	if (iResult == SOCKET_ERROR)
+	{
+		int error = WSAGetLastError();
+		if (error != WSAENOTSOCK)
+			sucHandleErrorCode(error);
 	}
 
 	_isClosed = true;

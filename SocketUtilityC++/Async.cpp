@@ -8,20 +8,18 @@
 //		Client class		//
 // ------------------------ //
 
-suc::AsyncClient::AsyncClient(ClientSocket client)
+suc::AsyncClient::AsyncClient(std::unique_ptr<ClientSocket> client)
 	:
-	socket(std::move(client))
+	socket(std::move(client)),
+	onMessage([](const ByteBuffer&, ClientSocket*) {}),
+	onTerminate([](AsyncClient*) {})
 {
+	static size_t nextId = 1;
+	id = nextId++;
 }
 
 
-suc::AsyncClient::~AsyncClient() noexcept
-{
-	std::cout << "Async client destroyed.\n";
-}
-
-
-auto suc::AsyncClient::create(ClientSocket client) -> AsyncClient*
+auto suc::AsyncClient::create(std::unique_ptr<ClientSocket> client) -> AsyncClient*
 {
 	auto newClient = std::unique_ptr<AsyncClient>(new AsyncClient(std::move(client)));
 	AsyncClient* result = newClient.get();
@@ -31,28 +29,29 @@ auto suc::AsyncClient::create(ClientSocket client) -> AsyncClient*
 }
 
 
+auto suc::AsyncClient::getId() const noexcept -> size_t
+{
+	return id;
+}
+
+
 void suc::AsyncClient::run(std::unique_ptr<AsyncClient> client)
 {
-	auto& socket = client->socket;
-	while (true)
+	auto& socket = *client->socket;
+	while (!socket.isClosed())
 	{
 		try {
 			auto received = std::move(socket.recv(SUC_TIMEOUT_NEVER).value());
-			client->onMessage(std::move(received), &socket);
-
-			if (socket.isClosed()) {
-				std::cout << "Socket closed.\n";
-				break;
-			}
+			client->onMessage(received, &socket);
 		}
 		catch (const SucException& err) {
-			std::cout << "Exception in AsyncClient: " << err.getMsg()
+			std::cout << "Exception in AsyncClient " << client->id << ": " << err.getMsg()
 				<< ". Stopping client.\n";
 			break;
 		}
 	}
 
-	std::cout << "Async client terminated.\n";
+	client->onTerminate(client.get());
 }
 
 
@@ -77,7 +76,7 @@ suc::AsyncServer::~AsyncServer() noexcept
 auto suc::AsyncServer::create(int port, int family, callback<AsyncClient*> onConnection) -> AsyncServer*
 {
 	auto newServer = std::unique_ptr<AsyncServer>(new AsyncServer(port, family));
-	newServer->onConnection = onConnection;
+	newServer->onConnection = std::move(onConnection);
 	AsyncServer* result = newServer.get();
 	std::thread{ &AsyncServer::run, std::move(newServer) }.detach();
 
@@ -97,7 +96,7 @@ void suc::AsyncServer::run(std::unique_ptr<AsyncServer> server)
 	while (!socket.isClosed())
 	{
 		try {
-			auto newClient = AsyncClient::create(std::move(*socket.accept().release()));
+			auto newClient = AsyncClient::create(std::move(socket.accept()));
 			server->onConnection(newClient);
 		}
 		catch (const SucException& err) {
