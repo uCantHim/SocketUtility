@@ -46,6 +46,7 @@
 // Datatype defines
 #ifdef OS_IS_WINDOWS
 	#define SOCKET SOCKET
+	#define INVALID_SOCKET INVALID_SOCKET
 #endif
 
 #ifdef OS_IS_LINUX

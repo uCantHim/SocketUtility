@@ -14,7 +14,6 @@ suc::ClientSocket::ClientSocket(SOCKET socket) noexcept
 suc::ClientSocket::~ClientSocket()
 {
 	close();
-	delete address;
 }
 
 
