@@ -2,11 +2,13 @@
 #ifndef SUCINTERNALS_H
 #define SUCINTERNALS_H
 
-#include <WinSock2.h>
-#include <WS2tcpip.h>
-#pragma comment(lib, "Ws2_32.lib")
-
 #include "SocketUtility.h"
+
+// -------------------------------------------- //
+//		Windows implementation internals		//
+// -------------------------------------------- //
+
+#ifdef OS_IS_WINDOWS
 
 constexpr auto SUC_WSA_VERSION_MAJOR = 2;
 constexpr auto SUC_WSA_VERSION_MINOR = 2;
@@ -258,6 +260,48 @@ static addrinfo* sucTranslateAddress(
 	return result;
 }
 
+#endif // #ifdef OS_IS_WINDOWS
+
+
+
+// ---------------------------------------- //
+//		Linux implementation internals		//
+// ---------------------------------------- //
+
+#ifdef OS_IS_LINUX
+
+static SOCKET linux_socket(int domain, int type, int protocol)
+{
+	return socket(domain, type, protocol);
+}
+
+static int linux_bind(int s, sockaddr* name, int namelen)
+{
+	return bind(s, name, namelen);
+}
+
+static int linux_listen(int s, int backlog)
+{
+	return listen(s, backlog);
+}
+
+static SOCKET linux_accept(int s, sockaddr* addr, socklen_t* addrlen)
+{
+	return accept(s, addr, addrlen);
+}
+
+static int linux_connect(int s, sockaddr* name, int namelen)
+{
+	return connect(s, name, namelen);
+}
+
+static int linux_close(int fd)
+{
+	return close(fd);
+}
+
+
+#endif // #ifdef OS_IS_LINUX
 
 
 #endif

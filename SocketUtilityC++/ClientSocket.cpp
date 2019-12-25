@@ -13,10 +13,17 @@ suc::ClientSocket::ClientSocket(SOCKET socket) noexcept
 
 suc::ClientSocket::~ClientSocket()
 {
-	delete address;
 	close();
 }
 
+
+// ---------------------------------------- //
+//											//
+//			Windows Implementation			//
+//											//
+// ---------------------------------------- //
+
+#ifdef OS_IS_WINDOWS
 
 bool suc::ClientSocket::connect(std::string ip, int port, int family)
 {
@@ -64,25 +71,13 @@ void suc::ClientSocket::send(const sbyte* buf, uint size)
 }
 
 
-void suc::ClientSocket::send(const ByteBuffer& buf)
-{
-	send(static_cast<sbyte*>(buf), static_cast<uint>(buf.size()));
-}
-
-
-void suc::ClientSocket::sendString(const std::string& to_str)
-{
-	send(static_cast<const sbyte*>(to_str.c_str()), static_cast<uint>(to_str.size()));
-}
-
-
 suc::uint suc::ClientSocket::recv(sbyte* buf, int timeoutMS)
 {
 	if (!hasData(timeoutMS)) {
 		return 0U;
 	}
 
-	int bytes = winsock_recv(socket, static_cast<char*>(recvbuf), recvbuf.size(), NULL);
+	int bytes = winsock_recv(socket, recvbuf.data(), recvbuf.size(), NULL);
 	if (bytes > recvbuf.size() - REMAINING_BUF_SPACE_CAP)
 	{
 		recvbuf.resize(recvbuf.size() * 2);
@@ -90,7 +85,7 @@ suc::uint suc::ClientSocket::recv(sbyte* buf, int timeoutMS)
 
 	if (bytes > 0) // Received data
 	{
-		memcpy(buf, static_cast<void*> (recvbuf), static_cast<size_t>(bytes));
+		memcpy(buf, recvbuf.data(), static_cast<size_t>(bytes));
 		return static_cast<uint>(bytes);
 	}
 	if (bytes == 0) // Connection has been closed remotely
@@ -99,26 +94,6 @@ suc::uint suc::ClientSocket::recv(sbyte* buf, int timeoutMS)
 	}
 	
 	sucHandleErrorCode(WSAGetLastError()); // bytes == SOCKET_ERROR
-}
-
-
-std::optional<suc::ByteBuffer> suc::ClientSocket::recv(int timeoutMS)
-{
-	uint bytes = recv(static_cast<sbyte*>(recvbuf), timeoutMS);
-	if (bytes == 0) {
-		return std::nullopt;
-	}
-	return ByteBuffer(bytes, static_cast<void*>(recvbuf));
-}
-
-
-std::string suc::ClientSocket::recvString(int timeoutMS)
-{
-	uint bytes = recv(static_cast<sbyte*>(recvbuf), timeoutMS);
-	if (bytes == 0) {
-		return std::string();
-	}
-	return std::string{ static_cast<char*>(recvbuf), bytes };
 }
 
 
@@ -155,6 +130,172 @@ void suc::ClientSocket::close()
 
 	_isClosed = true;
 }
+
+#endif // #ifdef OS_IS_WINDOWS
+
+
+
+// ------------------------------------ //
+//										//
+//			Linux Implementation		//
+//										//
+// ------------------------------------ //
+
+#ifdef OS_IS_LINUX
+
+bool suc::ClientSocket::connect(std::string ip, int port, int family)
+{
+	if (!_isClosed) { close(); }
+
+	if (ip.empty()) {
+		ip = SUC_ADDR_LOCAL_HOST;
+	}
+
+	// Create a new socket
+	/* AF_INET is internet, AF_UNIX is a unix socket for two processes that
+	 * share a common file system.
+	 *
+	 * SOCK_STREAM is a contiguous stream of data, SOCK_DGRAM is a connection
+	 * in which messages are read in chunks.
+	 *
+	 * 0 indicates that the operating system shall choose the most appropriate
+	 * protocol. This should almost always be 0. It will choose TCP for
+	 * SOCK_STREAM, UDP for SOCK_DGRAM.
+	 */
+	socket = linux_socket(family, SOCK_STREAM, 0);
+	if (socket == -1)
+		throw SucSocketException("[Linux] Unable to create socket.");
+
+	// Resolve host address
+	hostent* server = gethostbyname(ip.c_str());
+	if (server == NULL)
+		throw SucSystemException("[Linux] Unable to find host with address " + ip);
+
+	// Create server address structure
+	sockaddr_in serverAddress;
+	memset(&serverAddress, sizeof(serverAddress), 0);
+
+	serverAddress.sin_family = family;
+	memcpy(&serverAddress.sin_addr.s_addr, server->h_addr, server->h_length);
+	serverAddress.sin_port = htons(port);
+
+	// Connect
+	if (linux_connect(socket, reinterpret_cast<sockaddr*>(&serverAddress), sizeof(serverAddress)) == -1)
+		throw SucSocketException("[Linux] Unable to connect to server.");
+
+	return true;
+}
+
+
+void suc::ClientSocket::send(const sbyte* buf, uint size)
+{
+	ssize_t writtenBytes = write(socket, buf, static_cast<size_t>(size));
+	if (writtenBytes < 0)
+		throw SucSocketException("[Linux] Unable to write to socket.");
+
+	assert(writtenBytes == static_cast<int>(size));
+}
+
+
+
+
+suc::uint suc::ClientSocket::recv(sbyte* buf, int timeoutMS)
+{
+	if (!hasData(timeoutMS)) {
+		return 0U;
+	}
+
+	int readBytes = read(socket, recvbuf.data(), recvbuf.size());
+	if (readBytes > recvbuf.size() - REMAINING_BUF_SPACE_CAP)
+	{
+		recvbuf.resize(recvbuf.size() * 2);
+	}
+
+	if (readBytes > 0) // Received data
+	{
+		memcpy(buf, recvbuf.data(), static_cast<size_t>(readBytes));
+		return static_cast<uint>(readBytes);
+	}
+	if (readBytes == 0) // Connection has been closed remotely
+	{
+		throw SucSocketException("[Linux] Unable to read file descriptor. EOF was reached.");
+	}
+	
+	throw SucSocketException("[Linux] Unable to receive data from socket.");
+}
+
+
+bool suc::ClientSocket::hasData(int timeoutMS) const
+{
+	// select() is POSIX-standardized but I still wrote a separate implementation
+	// for it. I shall look into this.
+	fd_set read;
+	FD_ZERO(&read);
+	FD_SET(socket, &read);
+
+	constexpr std::int32_t secondsFactor = 1000L;
+	timeval timeout;
+	timeout.tv_usec = static_cast<std::int32_t>(timeoutMS) % secondsFactor;
+	timeout.tv_sec = (static_cast<std::int32_t>(timeoutMS) - timeout.tv_usec) / secondsFactor;
+
+	timeval* t_ptr = &timeout;
+	if (timeoutMS == -1)
+		t_ptr = nullptr;
+
+	int numSockets = select(socket + 1, &read, nullptr, nullptr, t_ptr);
+	if (numSockets == -1)
+		throw SucSocketException("[Linux] Error while waiting for a descriptor to become ready.");
+	
+	return numSockets > 0;
+}
+
+
+void suc::ClientSocket::close()
+{
+	if (_isClosed) { return; }
+
+	if (linux_close(socket) == -1)
+		throw SucSocketException("[Linux] Unable to close socket.");
+
+	_isClosed = true;
+}
+
+#endif // #ifdef OS_IS_LINUX
+
+
+void suc::ClientSocket::send(const ByteBuffer& buf)
+{
+	send(static_cast<sbyte*>(buf), static_cast<uint>(buf.size()));
+}
+
+
+void suc::ClientSocket::sendString(const std::string& to_str)
+{
+	send(static_cast<const sbyte*>(to_str.c_str()), static_cast<uint>(to_str.size()));
+}
+
+
+std::optional<std::vector<suc::sbyte>> suc::ClientSocket::recv(int timeoutMS)
+{
+	uint bytes = recv(recvbuf.data(), timeoutMS);
+	if (bytes == 0) {
+		return std::nullopt;
+	}
+
+	return recvbuf;
+}
+
+
+std::string suc::ClientSocket::recvString(int timeoutMS)
+{
+	uint bytes = recv(recvbuf.data(), timeoutMS);
+	if (bytes == 0) {
+		return std::string();
+	}
+
+	return std::string{ recvbuf.data(), bytes };
+}
+
 
 bool suc::ClientSocket::isClosed() const noexcept
 {

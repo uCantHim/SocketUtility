@@ -5,6 +5,9 @@
 
 #include "SocketUtility.h"
 
+// TODO:
+// Create a custom address structure that encapsulates the #ifdef hacks
+
 namespace suc
 {
 	class ClientSocket;
@@ -44,9 +47,16 @@ namespace suc
 
 	private:
 		bool _isClosed{ true };
-
 		SOCKET socket{ INVALID_SOCKET };
+
+#ifdef OS_IS_WINDOWS
 		addrinfo* address{ nullptr };
+#endif
+
+#ifdef OS_IS_LINUX
+		int clientAddressSize{0};
+		sockaddr_in address;
+#endif
 	};
 } // namespace suc
 

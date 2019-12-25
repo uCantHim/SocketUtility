@@ -12,7 +12,7 @@ namespace suc
 	class ClientSocket
 	{
 	public:
-		ClientSocket() noexcept = default;
+		ClientSocket() = default;
 		explicit ClientSocket(SOCKET socket) noexcept;
 
 		ClientSocket(const ClientSocket&) = delete;
@@ -62,7 +62,7 @@ namespace suc
 		If the timeout parameter is set to 0, the method will return immediately if no data is available.
 		If the timeout parameter is set to -1, the method will block until data is available.
 		- RETURN: Returns a buffer containing the received data if any data has been received. */
-		[[nodiscard]] std::optional<ByteBuffer> recv(int timeoutMS = SUC_TIMEOUT_NEVER);
+		[[nodiscard]] std::optional<std::vector<sbyte>> recv(int timeoutMS = SUC_TIMEOUT_NEVER);
 
 		/* +++ recvString() +++
 		Attempts to read data from the socket.
@@ -94,11 +94,9 @@ namespace suc
 		static constexpr uint STANDARD_BUF_SIZE = 4096;
 		static constexpr int REMAINING_BUF_SPACE_CAP = 20;
 
+		std::vector<sbyte> recvbuf = std::vector<sbyte>(STANDARD_BUF_SIZE);
+
 		SOCKET socket{ INVALID_SOCKET };
-		addrinfo* address{ nullptr };
-
-		ByteBuffer recvbuf{ STANDARD_BUF_SIZE };
-
 		bool _isClosed{ true };
 	};
 } // namespace suc

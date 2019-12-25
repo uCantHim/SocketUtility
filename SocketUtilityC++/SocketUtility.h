@@ -18,13 +18,45 @@
 #ifndef SOCKETUTILITY_H
 #define SOCKETUTILITY_H
 
-#include <WinSock2.h>
-#include <WS2tcpip.h>
-#pragma comment(lib, "Ws2_32.lib")
+// Operating system macros
+#ifdef _WIN32
+	#define OS_IS_WINDOWS _WIN32
+#endif
+#ifdef __linux__
+	#define OS_IS_LINUX __linux__
+#endif
+
+// Include windows socket headers
+#ifdef OS_IS_WINDOWS
+	#include <WinSock2.h>
+	#include <WS2tcpip.h>
+	#pragma comment(lib, "Ws2_32.lib")
+#endif
+
+// Include Linux socket headers
+#ifdef OS_IS_LINUX
+	#include <sys/types.h>
+	#include <sys/socket.h>
+	#include <sys/select.h>
+	#include <netinet/in.h>
+	#include <netdb.h>
+	#include <unistd.h> // write() and read()
+#endif
+
+// Datatype defines
+#ifdef OS_IS_WINDOWS
+	#define SOCKET SOCKET
+#endif
+
+#ifdef OS_IS_LINUX
+	#define SOCKET int
+	#define INVALID_SOCKET -1
+#endif
 
 #include <cassert>
 #include <iostream>
 #include <string>
+#include <cstring>
 #include <vector>
 #include <sstream>
 #include <optional>

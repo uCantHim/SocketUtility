@@ -22,6 +22,14 @@ suc::ServerSocket::~ServerSocket()
 }
 
 
+// ---------------------------------------- //
+//											//
+//			Windows Implementation			//
+//											//
+// ---------------------------------------- //
+
+#ifdef OS_IS_WINDOWS
+
 void suc::ServerSocket::bind(int port, int family)
 {
 	if (!(family == SUC_IPV4 || family == SUC_IPV6)) {
@@ -94,6 +102,134 @@ void suc::ServerSocket::close()
 
 	_isClosed = true;
 }
+
+#endif
+
+
+// ------------------------------------ //
+//										//
+//			Linux Implementation		//
+//										//
+// ------------------------------------ //
+
+#ifdef OS_IS_LINUX
+
+// Sources:
+// https://www.linuxhowtos.org/C_C++/socket.htm
+
+void suc::ServerSocket::bind(int port, int family)
+{
+	if (!(family == SUC_IPV4 || family == SUC_IPV6)) {
+		throw SucInvalidValueException("Invalid family: " + std::to_string(family));
+	}
+
+	// Create a new socket
+	/* AF_INET is internet, AF_UNIX is a unix socket for two processes that
+	 * share a common file system.
+	 *
+	 * SOCK_STREAM is a contiguous stream of data, SOCK_DGRAM is a connection
+	 * in which messages are read in chunks.
+	 *
+	 * 0 indicates that the operating system shall choose the most appropriate
+	 * protocol. This should almost always be 0. It will choose TCP for
+	 * SOCK_STREAM, UDP for SOCK_DGRAM.
+	 */
+	socket = linux_socket(AF_INET, SOCK_STREAM, 0);
+	if (socket == -1)
+		throw SucSocketException("[Linux] Unable to create a socket.");
+
+	// Initialize address to zero
+	memset(&address, sizeof(address), 0);
+	address.sin_family = family;
+	address.sin_port = htons(port);
+	address.sin_addr.s_addr = INADDR_ANY;
+
+	if (linux_bind(socket, reinterpret_cast<sockaddr*>(&address), sizeof(address)) == -1)
+	{
+		int lastError = errno;
+		switch (lastError)
+		{
+		case EACCES:
+			std::cout << "Access error.\n";	
+			break;
+		case EADDRINUSE:
+			std::cout << "Address in use.\n";
+			break;
+		case EBADF:
+			std::cout << "Socket is not a valid descriptor.\n";
+			break;
+		case EINVAL:
+			std::cout << "Socket is already bound to an address.\n";
+			break;
+		case ENOTSOCK:
+			std::cout << "Socket is not a socket.\n";
+			break;
+		case EADDRNOTAVAIL:
+			std::cout << "Address not available.\n";
+			break;
+		case EFAULT:
+			std::cout << "Bad memory access.\n";
+			break;
+		case ELOOP:
+			std::cout << "Too many symbolc links.\n";
+			break;
+		case ENAMETOOLONG:
+			std::cout << "Name too long.\n";
+			break;
+		case ENOENT:
+			std::cout << "File does not exist.\n";
+			break;
+		case ENOMEM:
+			std::cout << "Out of memory.\n";
+			break;
+		case ENOTDIR:
+			std::cout << "Not a directory.\n";
+			break;
+		case EROFS:
+			std::cout << "Read only.\n";
+			break;
+		}
+		throw SucSocketException("[Linux] Unable to bind socket to address.");
+	}
+	// TODO: Catch the correct error here (see https://www.linuxhowtos.org/data/6/bind.txt)
+
+	// Listen
+	const int backlogQueueSize = 5; // Maximum on most systems
+	linux_listen(socket, backlogQueueSize); // Cannot fail if the first argument is a valid socket descriptor
+}
+
+
+std::unique_ptr<suc::ClientSocket> suc::ServerSocket::accept() const
+{
+	sockaddr_in clientAddress;
+	int addressLength = sizeof(clientAddress);
+	SOCKET newSock = linux_accept(
+		socket,
+		reinterpret_cast<sockaddr*>(&clientAddress),
+		reinterpret_cast<socklen_t*>(&addressLength)
+	);
+
+	if (newSock == -1)
+		throw SucSocketException("[Linux] Unable to accept connection.");
+
+	// Create ClientSocket
+	auto newClient = std::make_unique<ClientSocket>(newSock);
+	return newClient;
+}
+
+
+void suc::ServerSocket::close()
+{
+	if (_isClosed) { return; }
+
+	if (linux_close(socket))
+		throw SucSocketException("[Linux] Unable to close socket.");
+
+	_isClosed = true;
+}
+
+#endif
+
 
 bool suc::ServerSocket::isClosed() const noexcept
 {
