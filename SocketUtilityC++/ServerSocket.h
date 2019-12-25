@@ -21,8 +21,9 @@ namespace suc
 		explicit ServerSocket(int port, int family = SUC_IPV4);
 
 		ServerSocket(const ServerSocket&) = delete;
-		ServerSocket& operator=(const ServerSocket&) = delete;
 		ServerSocket(ServerSocket&&) noexcept = default;
+
+		ServerSocket& operator=(const ServerSocket&) = delete;
 		ServerSocket& operator=(ServerSocket&&) noexcept = default;
 
 		~ServerSocket() noexcept;

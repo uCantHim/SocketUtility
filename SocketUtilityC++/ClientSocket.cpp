@@ -14,6 +14,7 @@ suc::ClientSocket::ClientSocket(SOCKET socket) noexcept
 suc::ClientSocket::~ClientSocket()
 {
 	close();
+	delete address;
 }
 
 
@@ -124,8 +125,11 @@ void suc::ClientSocket::close()
 	if (_isClosed) { return; }
 
 	int iResult = closesocket(socket);
-	if (iResult == SOCKET_ERROR) {
-		sucHandleErrorCode(WSAGetLastError());
+	if (iResult == SOCKET_ERROR)
+	{
+		int error = WSAGetLastError();
+		if (error != WSAENOTSOCK)
+			sucHandleErrorCode(error);
 	}
 
 	_isClosed = true;
