@@ -15,11 +15,11 @@ namespace suc
 		explicit ClientSocket(SOCKET socket) noexcept;
 
 		ClientSocket(const ClientSocket&) = delete;
-		ClientSocket(ClientSocket&&) noexcept = default;
+		ClientSocket(ClientSocket&& other) noexcept;
 		~ClientSocket() noexcept;
 
 		ClientSocket& operator=(const ClientSocket&) = delete;
-		ClientSocket& operator=(ClientSocket&&) noexcept = default;
+		ClientSocket& operator=(ClientSocket&& rhs) noexcept;
 
 		/* +++ connect() +++
 		Attempts to connect to a server.

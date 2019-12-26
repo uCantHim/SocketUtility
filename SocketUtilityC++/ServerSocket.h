@@ -21,10 +21,10 @@ namespace suc
 		explicit ServerSocket(int port, int family = IPV4);
 
 		ServerSocket(const ServerSocket&) = delete;
-		ServerSocket(ServerSocket&&) noexcept = default;
+		ServerSocket(ServerSocket&& other) noexcept;
 
 		ServerSocket& operator=(const ServerSocket&) = delete;
-		ServerSocket& operator=(ServerSocket&&) noexcept = default;
+		ServerSocket& operator=(ServerSocket&& rhs) noexcept;
 
 		~ServerSocket() noexcept;
 

@@ -80,7 +80,8 @@ namespace suc
 	constexpr auto IPV6 = AF_INET6;
 	constexpr auto IPVX = AF_UNSPEC;
 
-	constexpr auto ADDR_LOCAL_HOST = "127.0.0.1";
+	constexpr auto ADDR_LOCALHOST_4 = "127.0.0.1";
+	constexpr auto ADDR_LOCALHOST_6 = "::1";
 	constexpr auto ADDR_ALL = "0.0.0.0";
 
 	constexpr auto TIMEOUT_NEVER = (-1);

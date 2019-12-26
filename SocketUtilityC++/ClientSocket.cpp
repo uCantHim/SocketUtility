@@ -24,6 +24,24 @@ suc::ClientSocket::~ClientSocket() noexcept
 }
 
 
+suc::ClientSocket::ClientSocket(ClientSocket&& other) noexcept
+{
+	std::swap(socket, other.socket);
+	std::swap(recvbuf, other.recvbuf);
+	std::swap(_isClosed, other._isClosed);
+}
+
+
+suc::ClientSocket& suc::ClientSocket::operator=(ClientSocket&& rhs) noexcept
+{
+	std::swap(socket, rhs.socket);
+	std::swap(recvbuf, rhs.recvbuf);
+	std::swap(_isClosed, rhs._isClosed);
+
+	return *this;
+}
+
+
 // ---------------------------------------- //
 //											//
 //			Windows Implementation			//
@@ -37,7 +55,7 @@ bool suc::ClientSocket::connect(std::string ip, int port, int family)
 	if (!_isClosed) { close(); }
 
 	if (ip.empty()) {
-		ip = ADDR_LOCAL_HOST;
+		ip = ADDR_LOCALHOST_4;
 	}
 
 	addrinfo* ptr = sucTranslateAddress(ip, port, family, SOCK_STREAM, IPPROTO_TCP, NULL);
@@ -150,7 +168,7 @@ bool suc::ClientSocket::connect(std::string ip, int port, int family)
 	if (!_isClosed) { close(); }
 
 	if (ip.empty()) {
-		ip = ADDR_LOCAL_HOST;
+		ip = ADDR_LOCALHOST_4;
 	}
 
 	// Create a new socket

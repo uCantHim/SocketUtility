@@ -29,6 +29,36 @@ suc::ServerSocket::~ServerSocket() noexcept
 }
 
 
+suc::ServerSocket::ServerSocket(ServerSocket&& other) noexcept
+{
+	std::swap(_isClosed, other._isClosed);
+	std::swap(socket, other.socket);
+
+#ifdef OS_IS_WINDOWS
+	std::swap(address, other.address);
+#endif
+#ifdef OS_IS_LINUX
+	std::swap(address, other.address);
+#endif
+}
+
+
+suc::ServerSocket& suc::ServerSocket::operator=(ServerSocket&& rhs) noexcept
+{
+	std::swap(_isClosed, rhs._isClosed);
+	std::swap(socket, rhs.socket);
+
+#ifdef OS_IS_WINDOWS
+	std::swap(address, rhs.address);
+#endif
+#ifdef OS_IS_LINUX
+	std::swap(address, rhs.address);
+#endif
+
+	return *this;
+}
+
+
 // ---------------------------------------- //
 //											//
 //			Windows Implementation			//
@@ -43,7 +73,8 @@ void suc::ServerSocket::bind(int port, int family)
 		throw value_error("Invalid family: " + std::to_string(family));
 	}
 
-	addrinfo* ptr = sucTranslateAddress("0.0.0.0", port, family, SOCK_STREAM, IPPROTO_TCP, AI_PASSIVE);
+	const auto address = family == IPV4 ? ADDR_LOCALHOST_4 : ADDR_LOCALHOST_6;
+	addrinfo* ptr = sucTranslateAddress(address, port, family, SOCK_STREAM, IPPROTO_TCP, AI_PASSIVE);
 	int iResult = 0;
 
 	// Try to bind to any of the returned connections
@@ -138,7 +169,7 @@ void suc::ServerSocket::bind(int port, int family)
 	 * protocol. This should almost always be 0. It will choose TCP for
 	 * SOCK_STREAM, UDP for SOCK_DGRAM.
 	 */
-	socket = linux_socket(AF_INET, SOCK_STREAM, 0);
+	socket = linux_socket(family, SOCK_STREAM, 0);
 	if (socket == -1)
 		throw network_error("[Linux] Unable to create a socket.");
 
