@@ -195,11 +195,11 @@ namespace suc
 		/*
 		Thrown from HttpRequest::parseRequest when the provided ByteBuffer
 		contains no valid HTTP-Request. */
-		class InvalidHttpRequestException : public SucException
+		class InvalidHttpRequestException : public suc_error
 		{
 		public:
 			explicit InvalidHttpRequestException(const std::string& msg = "")
-				: SucException(msg) {}
+				: suc_error(msg) {}
 		};
 
 		struct RequestLine {

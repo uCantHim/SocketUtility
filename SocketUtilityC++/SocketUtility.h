@@ -95,10 +95,10 @@ namespace suc
 	//													//
 	// I had to make my own exceptions to feel cool.	//
 	// ------------------------------------------------ //
-	class SucException
+	class suc_error
 	{
 	public:
-		explicit SucException(std::string msg = "") : msg(std::move(msg)) {}
+		explicit suc_error(std::string msg = "") : msg(std::move(msg)) {}
 		void print() const
 		{
 			std::cout << "Exception: " << msg << std::endl;
@@ -111,40 +111,34 @@ namespace suc
 		std::string msg;
 	};
 
-	class SucRuntimeException : public SucException
+	class runtime_error : public suc_error
 	{
 	public:
-		explicit SucRuntimeException(std::string msg = "") : SucException(std::move(msg)) {}
+		explicit runtime_error(std::string msg = "") : suc_error(std::move(msg)) {}
 	};
 
-	class SucSocketException : public SucException
+	class network_error : public suc_error
 	{
 	public:
-		explicit SucSocketException(std::string msg = "") : SucException(std::move(msg)) {}
+		explicit network_error(std::string msg = "") : suc_error(std::move(msg)) {}
 	};
 
-	class SucSystemException : public SucException
+	class system_error : public suc_error
 	{
 	public:
-		explicit SucSystemException(std::string msg = "") : SucException(std::move(msg)) {}
+		explicit system_error(std::string msg = "") : suc_error(std::move(msg)) {}
 	};
 
-	class SucWSAException : public SucSystemException
+	class value_error : public suc_error
 	{
 	public:
-		explicit SucWSAException(std::string msg = "") : SucSystemException(std::move(msg)) {}
+		explicit value_error(std::string msg = "") : suc_error(std::move(msg)) {}
 	};
 
-	class SucInvalidValueException : public SucException
+	class memory_error : public suc_error
 	{
 	public:
-		explicit SucInvalidValueException(std::string msg = "") : SucException(std::move(msg)) {}
-	};
-
-	class SucMemoryError : public SucException
-	{
-	public:
-		explicit SucMemoryError(std::string msg = "") : SucException(std::move(msg)) {}
+		explicit memory_error(std::string msg = "") : suc_error(std::move(msg)) {}
 	};
 
 

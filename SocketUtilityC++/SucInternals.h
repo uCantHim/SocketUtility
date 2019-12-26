@@ -8,6 +8,11 @@
 //		Windows implementation internals		//
 // -------------------------------------------- //
 
+/* +++ handleLastError() +++
+Generates a suitable exception for the lastest error. */
+[[noreturn]] static void handleLastError();
+
+
 #ifdef OS_IS_WINDOWS
 
 constexpr auto SUC_WSA_VERSION_MAJOR = 2;
@@ -18,11 +23,6 @@ constexpr auto SUC_ADDRESS_TRANSLATE_MAX_TRY_AGAIN = 10;
 // -------------- //
 // Function heads //
 // -------------- //
-
-/* +++ sucHandleErrorCode() +++
-Analyses the passed WSA-error-code and might generate an appropriate exception.
-Usually, WSAGetLastError() is passed as the argument. */
-[[noreturn]] static inline void sucHandleErrorCode(int err_code);
 
 /* +++ sucTranslateAddress() +++
 Translates an IP address in string representation (xxx.xxx.xxx.xxx) into a WSA-addrinfo.
@@ -61,7 +61,7 @@ static bool sucInitWSA() {
 	if (LOBYTE(wsaData.wVersion) != 2 || HIBYTE(wsaData.wVersion) != 2)
 	{
 		WSACleanup();
-		throw suc::SucSystemException("WSA_INIT_ERROR: Could not find a usable Winsock 2.2 dll.\n");
+		throw suc::system_error("WSA_INIT_ERROR: Could not find a usable Winsock 2.2 dll.\n");
 	}
 
 	return true;
@@ -119,118 +119,6 @@ static int winsock_select(int nfds, fd_set* readfds, fd_set* writefds, fd_set* e
 //														//
 // These help me with some recurring WinSock tasks.		//
 // ---------------------------------------------------- //
-
-[[noreturn]] static inline void sucHandleErrorCode(int err_code)
-{
-	switch (err_code)
-	{
-	case WSAENETDOWN: // System
-		throw suc::SucSystemException("The network subsystem has failed.");
-		break;
-	case WSAENOBUFS: // System
-		throw suc::SucSystemException("No buffer space is available for the requested operation.");
-		break;
-	case WSAEADDRINUSE: // System
-		throw suc::SucSystemException("The address is already in use.");
-		break;
-	case WSASYSNOTREADY: // System
-		throw suc::SucSystemException("Underlying networking system not ready.\n");
-		break;
-	case WSANOTINITIALISED: // WSA
-		throw suc::SucWSAException("WSA not initialized.");
-		break;
-	case WSAEACCES: // WSA
-		throw suc::SucWSAException("An attempt was made to access a socket in a way forbidden by its access permissions.");
-		break;
-	case WSAEMFILE: // WSA
-		throw suc::SucWSAException("Too many open sockets.");
-		break;
-	case WSANO_RECOVERY: // WSA
-		throw suc::SucWSAException("A nonrecoverable failure occured during database lookup.");
-		break;
-	case WSAHOST_NOT_FOUND: // WSA
-		throw suc::SucWSAException("Host not found.");
-		break;
-	case WSATYPE_NOT_FOUND: // WSA
-		throw suc::SucWSAException("Class type not found.");
-		break;
-	case WSAESOCKTNOSUPPORT: // WSA
-		throw suc::SucWSAException("The support for the specified socket type does not exist in this address family.");
-		break;
-	case WSAVERNOTSUPPORTED: // WSA
-		throw suc::SucWSAException("WSA_INIT_ERROR: Requested version of Windows Sockets support not provided.\n");
-		break;
-	case WSAEPROCLIM: // WSA
-		throw suc::SucWSAException("WSA_INIT_ERROR: A limit on the number of tasks supported by the Windows Sockets implementation has been reached.\n");
-		break;
-	case WSAEFAULT: // WSA
-		throw suc::SucWSAException("An invalid pointer has been passed as an argument");
-		break;
-	case WSAEINPROGRESS: // WSA
-		throw suc::SucWSAException("Another blocking operation is already in progress. WinSock allows only one blocking operation at a time.");
-		break;
-	case WSAEALREADY: // WSA
-		throw suc::SucWSAException("A nonblocking operation is already in progress on the specified socket.");
-		break;
-	case WSAENOTSOCK: // WSA
-		throw suc::SucWSAException("The descriptor is not a socket.");
-		break;
-	case WSAEOPNOTSUPP: // WSA
-		throw suc::SucWSAException("Operation not supported for the type of object.");
-		break;
-	case WSAEWOULDBLOCK: // WSA
-		throw suc::SucWSAException("Nonblocking operation cannot be completed immediately.");
-		break;
-	case WSAEINVAL: // WSA
-		throw suc::SucWSAException("Invalid value or invalid state of the socket.");
-		break;
-	case WSAENOTCONN: // Socket
-		throw suc::SucSocketException("The socket is not connected.");
-		break;
-	case WSAEADDRNOTAVAIL: // Socket
-		throw suc::SucSocketException("The specified address is not valid in its context.");
-		break;
-	case WSAEAFNOSUPPORT: // Socket
-		throw suc::SucSocketException("Address family not supported by protocol family.");
-		break;
-	case WSAECONNREFUSED: // Socket
-		throw suc::SucSocketException("Connection refused.");
-		break;
-	case WSAENETRESET: // Socket
-		throw suc::SucSocketException("Connection broken due to keep-alive activity indicating a failure.");
-		break;
-	case WSAESHUTDOWN: // Socket
-		throw suc::SucSocketException("The used direction (send/receive) has already been shut down.");
-		break;
-	case WSAEMSGSIZE: // Socket
-		throw suc::SucSocketException("The message was too large to fit into the buffer.");
-		break;
-	case WSAEISCONN: // Socket
-		throw suc::SucSocketException("The socket is already connected.");
-		break;
-	case WSAECONNABORTED: // Socket
-		throw suc::SucSocketException("Software cause connection abort. Possibly transmission timeout or protocol error.");
-		break;
-	case WSAENETUNREACH: // Socket
-		throw suc::SucSocketException("Unreachable host.");
-		break;
-	case WSAETIMEDOUT: // Socket
-		throw suc::SucSocketException("Connection timeout.");
-		break;
-	case WSAECONNRESET: // Socket
-		throw suc::SucSocketException("Connection reset.");
-		break;
-	case WSAEINTR: // Runtime
-		throw suc::SucRuntimeException("Interrupted function call. A blocking operation was interrupted by a call to WSACancelBlockingCall.");
-		break;
-
-	default:
-		throw suc::SucException("Unknown WSA error code: " + std::to_string(err_code));
-		break;
-	}
-}
-
-
 
 static addrinfo* sucTranslateAddress(
 	const std::string& ip_address, int port,
@@ -300,8 +188,103 @@ static int linux_close(int fd)
 	return close(fd);
 }
 
-
 #endif // #ifdef OS_IS_LINUX
 
 
+
+[[noreturn]] static void handleLastError()
+{
+#ifdef OS_IS_WINDOWS
+	auto lastError = WSAGetLastError();
 #endif
+#ifdef OS_IS_LINUX
+	auto lastError = errno;
+#endif
+
+	switch(lastError)
+	{
+	case EACCES:
+		throw suc::suc_error("Access error.");	
+	case EADDRINUSE:
+		throw suc::suc_error("Address in use.");
+	case EBADF:
+		throw suc::suc_error("Socket is not a valid descriptor.");
+	case EINVAL:
+		throw suc::suc_error(
+			"Socket is already bound to an address or the specified address length is not a valid length for an address"
+			" of the specified address family.");
+	case ENOTSOCK:
+		throw suc::suc_error("Socket is not a socket descriptor.");
+	case EADDRNOTAVAIL:
+		throw suc::suc_error("Address not available.");
+	case EFAULT:
+		throw suc::suc_error("Bad memory access.");
+	case ELOOP:
+		throw suc::suc_error("Too many symbolc links.");
+	case ENAMETOOLONG:
+		throw suc::suc_error("Name too long.");
+	case ENOENT:
+		throw suc::suc_error("File does not exist.");
+	case ENOMEM:
+		throw suc::suc_error("Out of memory.");
+	case ENOTDIR:
+		throw suc::suc_error("Not a directory.");
+	case EROFS:
+		throw suc::suc_error("Read only.");
+	case EAFNOSUPPORT:
+		throw suc::suc_error("Address not supported in this family.");
+	case EALREADY:
+		throw suc::suc_error("Socket is non-blocking and a previous connection attempt has not yet benn completed.");
+	case ECONNREFUSED:
+		throw suc::suc_error("Connection refused.");
+	case EINPROGRESS:
+		throw suc::suc_error("The socket is non-blocking and the connection cannot be completed immediately.");
+	case EINTR:
+		throw suc::suc_error("The connection attempt was interrupted before any data arrived by the delivery of a signal.");
+	case EISCONN:
+		throw suc::suc_error("The socket is already connected.");
+	case ENETUNREACH:
+		throw suc::suc_error("The network is not reachable from this host.");
+	case ETIMEDOUT:
+		throw suc::suc_error("Connection timeout.");
+	case EIO:
+		throw suc::suc_error("An I/O error occured during writing to or reading from the file system.");
+	case EPROTOTYPE:
+		throw suc::suc_error("The socket referred to by name is of another type than s.");
+	//case E:
+		//throw suc::suc_error("");
+
+	default:
+		throw suc::suc_error("Unknown error code: " + std::to_string(lastError));
+	}
+}
+
+#ifdef OS_IS_WINDOWS
+	#define EACCES WSAEACCES
+	#define EADDRINUSE WSAEADDRINUSE
+	#define EBADF WSAEBADF
+	#define EINVAL WSAEINVAL
+	#define ENOTSOCK WASENOTSOCK
+	#define EADDRNOTAVAIL WSAEADDRNOTAVAIL
+	#define EFAULT WSAEFAULT
+	#define ELOOP WSAELOOP
+	#define ENAMETOOLONG WSAENAMETOOLONG
+	#define ENOENT WSAENOENT
+	#define ENOMEM WSAENOMEM
+	#define ENOTDIR WSAENOTDIR
+	#define EROFS WSAEROFS
+	#define EAFNOSUPPORT WSAEAFNOSUPPORT
+	#define EALREADY WSAEALREADY
+	#define ECONNREFUSED WSAECONNREFUSED
+	#define EINPROGRESS WSAEINPROGRESS
+	#define EINTR WSAEINTR
+	#define EISCONN WSAEISCONN
+	#define ENETUNREACH WSAENETUNREACH
+	#define ETIMEDOUT WSAETIMEDOUT
+	#define EIO WSAEIO
+	#define EPROTOTYPE WSAEPROTOTYPE
+#endif
+
+
+
+#endif // Header guard

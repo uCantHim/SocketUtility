@@ -90,7 +90,7 @@ suc::uint suc::ClientSocket::recv(sbyte* buf, int timeoutMS)
 	}
 	if (bytes == 0) // Connection has been closed remotely
 	{
-		throw SucSocketException("Connection closed remotely.");
+		throw network_error("Connection closed remotely.");
 	}
 	
 	sucHandleErrorCode(WSAGetLastError()); // bytes == SOCKET_ERROR
@@ -167,12 +167,12 @@ bool suc::ClientSocket::connect(std::string ip, int port, int family)
 	 */
 	socket = linux_socket(family, SOCK_STREAM, 0);
 	if (socket == -1)
-		throw SucSocketException("[Linux] Unable to create socket.");
+		handleLastError();
 
 	// Resolve host address
 	hostent* server = gethostbyname(ip.c_str());
 	if (server == NULL)
-		throw SucSystemException("[Linux] Unable to find host with address " + ip);
+		handleLastError();
 
 	// Create server address structure
 	sockaddr_in serverAddress;
@@ -183,8 +183,9 @@ bool suc::ClientSocket::connect(std::string ip, int port, int family)
 	serverAddress.sin_port = htons(port);
 
 	// Connect
-	if (linux_connect(socket, reinterpret_cast<sockaddr*>(&serverAddress), sizeof(serverAddress)) == -1)
-		throw SucSocketException("[Linux] Unable to connect to server.");
+	int result = linux_connect(socket, reinterpret_cast<sockaddr*>(&serverAddress), sizeof(serverAddress));
+	if (result == -1)
+		handleLastError();
 
 	return true;
 }
@@ -194,7 +195,7 @@ void suc::ClientSocket::send(const sbyte* buf, uint size)
 {
 	ssize_t writtenBytes = write(socket, buf, static_cast<size_t>(size));
 	if (writtenBytes < 0)
-		throw SucSocketException("[Linux] Unable to write to socket.");
+		handleLastError();
 
 	assert(writtenBytes == static_cast<int>(size));
 }
@@ -221,10 +222,10 @@ suc::uint suc::ClientSocket::recv(sbyte* buf, int timeoutMS)
 	}
 	if (readBytes == 0) // Connection has been closed remotely
 	{
-		throw SucSocketException("[Linux] Unable to read file descriptor. EOF was reached.");
+		handleLastError();
 	}
 	
-	throw SucSocketException("[Linux] Unable to receive data from socket.");
+	handleLastError();
 }
 
 
@@ -247,7 +248,7 @@ bool suc::ClientSocket::hasData(int timeoutMS) const
 
 	int numSockets = select(socket + 1, &read, nullptr, nullptr, t_ptr);
 	if (numSockets == -1)
-		throw SucSocketException("[Linux] Error while waiting for a descriptor to become ready.");
+		handleLastError();
 	
 	return numSockets > 0;
 }
@@ -258,7 +259,7 @@ void suc::ClientSocket::close()
 	if (_isClosed) { return; }
 
 	if (linux_close(socket) == -1)
-		throw SucSocketException("[Linux] Unable to close socket.");
+		handleLastError();
 
 	_isClosed = true;
 }
@@ -266,9 +267,9 @@ void suc::ClientSocket::close()
 #endif // #ifdef OS_IS_LINUX
 
 
-void suc::ClientSocket::send(const ByteBuffer& buf)
+void suc::ClientSocket::send(const std::vector<sbyte>& buf)
 {
-	send(static_cast<sbyte*>(buf), static_cast<uint>(buf.size()));
+	send(buf.data(), static_cast<uint>(buf.size()));
 }
 
 

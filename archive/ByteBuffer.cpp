@@ -4,7 +4,7 @@
 
 void suc::THROW_FAILED_MEM_ALLOC(size_t size)
 {
-	throw suc::SucMemoryError("Unable to allocate " + std::to_string(size) + " bytes of memory.");
+	throw suc::memory_error("Unable to allocate " + std::to_string(size) + " bytes of memory.");
 }
 
 
@@ -114,7 +114,7 @@ void* suc::ByteBuffer::makeRawCopy() const
 suc::ByteBuffer suc::ByteBuffer::makeCopyRange(buf_offset offset, buf_size size) const
 {
 	if (offset > _size || offset + size > _size) {
-		throw SucInvalidValueException("Specified offset and size exceed buffer capacity.");
+		throw value_error("Specified offset and size exceed buffer capacity.");
 	}
 
 	void* newBuffer = malloc(size);
@@ -133,7 +133,7 @@ suc::ByteBuffer suc::ByteBuffer::makeCopyRange(buf_offset offset, buf_size size)
 void* suc::ByteBuffer::makeRawCopyRange(buf_offset offset, buf_size size) const
 {
 	if (offset > _size || offset + size > _size) {
-		throw SucInvalidValueException("Specified offset and size exceed buffer capacity.");
+		throw value_error("Specified offset and size exceed buffer capacity.");
 	}
 
 	void* buf = malloc(size);

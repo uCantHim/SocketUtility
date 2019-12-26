@@ -5,7 +5,6 @@
 #include <optional>
 
 #include "SocketUtility.h"
-#include "ByteBuffer.h"
 
 namespace suc
 {
@@ -40,7 +39,7 @@ namespace suc
 		/* +++ sned() +++
 		Sends data through the socket.
 		- ARG buf: Specifies the data that shall be sent through the socket. */
-		void send(const ByteBuffer& buf);
+		void send(const std::vector<sbyte>& buf);
 
 		/* +++ sendString() +++
 		Sends a string through the socket.

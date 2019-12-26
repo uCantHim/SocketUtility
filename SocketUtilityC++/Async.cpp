@@ -44,7 +44,7 @@ void suc::AsyncClient::run(std::unique_ptr<AsyncClient> client)
 			auto received = std::move(socket.recv(SUC_TIMEOUT_NEVER).value());
 			client->onMessage(received, &socket);
 		}
-		catch (const SucException& err) {
+		catch (const suc_error& err) {
 			std::cout << "Exception in AsyncClient " << client->id << ": " << err.getMsg()
 				<< ". Stopping client.\n";
 			break;
@@ -99,7 +99,7 @@ void suc::AsyncServer::run(std::unique_ptr<AsyncServer> server)
 			auto newClient = AsyncClient::create(std::move(socket.accept()));
 			server->onConnection(newClient);
 		}
-		catch (const SucException& err) {
+		catch (const suc_error& err) {
 			std::cout << "Exception in AsyncServer: " << err.getMsg()
 				<< ". Stopping server.\n";
 			break;

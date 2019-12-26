@@ -9,13 +9,13 @@ int main()
 	try
 	{
 		suc::ClientSocket client;
-		client.connect(suc::SUC_ADDR_LOCAL_HOST, 8080);
+		client.connect("192.168.0.42", 8080);
 		auto msg = client.recvString(suc::SUC_TIMEOUT_NEVER);
 		std::cout << "Received message from server: " << msg << "\n";
 		client.sendString("Hi. I'm leaving, goodbye good sir.");
 		client.close();
 	}
-	catch (const suc::SucException& e)
+	catch (const suc::suc_error& e)
 	{
 		std::cerr << e.getMsg();
 	}

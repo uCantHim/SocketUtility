@@ -33,7 +33,7 @@ suc::ServerSocket::~ServerSocket()
 void suc::ServerSocket::bind(int port, int family)
 {
 	if (!(family == SUC_IPV4 || family == SUC_IPV6)) {
-		throw SucInvalidValueException("Invalid family: " + std::to_string(family));
+		throw value_error("Invalid family: " + std::to_string(family));
 	}
 
 	addrinfo* ptr = sucTranslateAddress("0.0.0.0", port, family, SOCK_STREAM, IPPROTO_TCP, AI_PASSIVE);
@@ -65,7 +65,7 @@ void suc::ServerSocket::bind(int port, int family)
 	// Listen
 	iResult = winsock_listen(socket, SOMAXCONN);
 	if (iResult == SOCKET_ERROR) {
-		throw SucSocketException("Error in ServerSocket::bind() when trying to listen. ["
+		throw network_error("Error in ServerSocket::bind() when trying to listen. ["
 			+ std::to_string(WSAGetLastError()) + "]");
 	}
 }
@@ -119,7 +119,7 @@ void suc::ServerSocket::close()
 void suc::ServerSocket::bind(int port, int family)
 {
 	if (!(family == SUC_IPV4 || family == SUC_IPV6)) {
-		throw SucInvalidValueException("Invalid family: " + std::to_string(family));
+		throw value_error("Invalid family: " + std::to_string(family));
 	}
 
 	// Create a new socket
@@ -135,7 +135,7 @@ void suc::ServerSocket::bind(int port, int family)
 	 */
 	socket = linux_socket(AF_INET, SOCK_STREAM, 0);
 	if (socket == -1)
-		throw SucSocketException("[Linux] Unable to create a socket.");
+		throw network_error("[Linux] Unable to create a socket.");
 
 	// Initialize address to zero
 	memset(&address, sizeof(address), 0);
@@ -188,7 +188,7 @@ void suc::ServerSocket::bind(int port, int family)
 			std::cout << "Read only.\n";
 			break;
 		}
-		throw SucSocketException("[Linux] Unable to bind socket to address.");
+		throw network_error("[Linux] Unable to bind socket to address.");
 	}
 	// TODO: Catch the correct error here (see https://www.linuxhowtos.org/data/6/bind.txt)
 
@@ -209,7 +209,7 @@ std::unique_ptr<suc::ClientSocket> suc::ServerSocket::accept() const
 	);
 
 	if (newSock == -1)
-		throw SucSocketException("[Linux] Unable to accept connection.");
+		throw network_error("[Linux] Unable to accept connection.");
 
 	// Create ClientSocket
 	auto newClient = std::make_unique<ClientSocket>(newSock);
@@ -222,7 +222,7 @@ void suc::ServerSocket::close()
 	if (_isClosed) { return; }
 
 	if (linux_close(socket))
-		throw SucSocketException("[Linux] Unable to close socket.");
+		throw network_error("[Linux] Unable to close socket.");
 
 	_isClosed = true;
 }

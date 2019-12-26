@@ -21,7 +21,7 @@ int main()
 		std::cin.get();
 		server.close();
 	}
-	catch(const suc::SucException& e)
+	catch(const suc::suc_error& e)
 	{
 		std::cerr << e.getMsg() << '\n';
 	}
