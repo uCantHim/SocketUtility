@@ -11,9 +11,16 @@ suc::ClientSocket::ClientSocket(SOCKET socket) noexcept
 }
 
 
-suc::ClientSocket::~ClientSocket()
+suc::ClientSocket::~ClientSocket() noexcept
 {
-	close();
+	try
+	{
+		close();
+	}
+	catch(const suc_error& e)
+	{
+		std::cerr << "In ClientSocket::~ClientSocket(): " << e.what() << '\n';
+	}
 }
 
 
@@ -92,7 +99,7 @@ suc::uint suc::ClientSocket::recv(sbyte* buf, int timeoutMS)
 	{
 		throw network_error("Connection closed remotely.");
 	}
-	
+
 	handleLastError();
 }
 
@@ -163,12 +170,12 @@ bool suc::ClientSocket::connect(std::string ip, int port, int family)
 
 	// Resolve host address
 	hostent* server = gethostbyname(ip.c_str());
-	if (server == NULL)
+	if (server == nullptr)
 		handleLastError();
 
 	// Create server address structure
-	sockaddr_in serverAddress;
-	memset(&serverAddress, sizeof(serverAddress), 0);
+	sockaddr_in serverAddress{};
+	memset(&serverAddress, 0, sizeof(serverAddress));
 
 	serverAddress.sin_family = family;
 	memcpy(&serverAddress.sin_addr.s_addr, server->h_addr, server->h_length);
@@ -189,7 +196,7 @@ void suc::ClientSocket::send(const sbyte* buf, uint size)
 	if (writtenBytes < 0)
 		handleLastError();
 
-	assert(writtenBytes == static_cast<int>(size));
+	assert(writtenBytes == static_cast<ssize_t>(size));
 }
 
 
@@ -216,7 +223,7 @@ suc::uint suc::ClientSocket::recv(sbyte* buf, int timeoutMS)
 	{
 		handleLastError();
 	}
-	
+
 	handleLastError();
 }
 
@@ -226,11 +233,10 @@ bool suc::ClientSocket::hasData(int timeoutMS) const
 	// select() is POSIX-standardized but I still wrote a separate implementation
 	// for it. I shall look into this.
 	fd_set read;
-	FD_ZERO(&read);
 	FD_SET(socket, &read);
 
 	constexpr std::int32_t secondsFactor = 1000L;
-	timeval timeout;
+	timeval timeout{};
 	timeout.tv_usec = static_cast<std::int32_t>(timeoutMS) % secondsFactor;
 	timeout.tv_sec = (static_cast<std::int32_t>(timeoutMS) - timeout.tv_usec) / secondsFactor;
 
@@ -241,7 +247,7 @@ bool suc::ClientSocket::hasData(int timeoutMS) const
 	int numSockets = select(socket + 1, &read, nullptr, nullptr, t_ptr);
 	if (numSockets == -1)
 		handleLastError();
-	
+
 	return numSockets > 0;
 }
 

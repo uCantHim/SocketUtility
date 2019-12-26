@@ -1,8 +1,8 @@
 #ifndef CLIENTSOCKET_H
 #define CLIENTSOCKET_H
 
-#include <string>
 #include <optional>
+#include <string>
 
 #include "SocketUtility.h"
 
@@ -53,7 +53,8 @@ namespace suc
 		If the timeout parameter is set to 0, the method will return immediately if no data is available.
 		If the timeout parameter is set to -1, the method will block until data is available.
 		- RETURN: Returns the number of bytes received. */
-		[[nodiscard]] uint recv(sbyte* buf, int timeoutMS = TIMEOUT_NEVER);
+		[[nodiscard]]
+		uint recv(sbyte* buf, int timeoutMS = TIMEOUT_NEVER);
 
 		/* +++ recv() +++
 		Attempts to read data from the socket.
@@ -61,7 +62,8 @@ namespace suc
 		If the timeout parameter is set to 0, the method will return immediately if no data is available.
 		If the timeout parameter is set to -1, the method will block until data is available.
 		- RETURN: Returns a buffer containing the received data if any data has been received. */
-		[[nodiscard]] std::optional<std::vector<sbyte>> recv(int timeoutMS = TIMEOUT_NEVER);
+		[[nodiscard]]
+		auto recv(int timeoutMS = TIMEOUT_NEVER) -> std::optional<std::vector<sbyte>>;
 
 		/* +++ recvString() +++
 		Attempts to read data from the socket.
@@ -69,7 +71,8 @@ namespace suc
 		If the timeout parameter is set to 0, the method will return immediately if no data is available.
 		If the timeout parameter is set to -1, the method will block until data is available.
 		RETURN: Returns the received data in string form. If no data could be read, this returns an empty string. */
-		[[nodiscard]] std::string recvString(int timeoutMS = TIMEOUT_NEVER);
+		[[nodiscard]]
+		auto recvString(int timeoutMS = TIMEOUT_NEVER) -> std::string;
 
 		/* +++ hasData() +++
 		Checks whether the socket has data available to be read.
@@ -79,7 +82,8 @@ namespace suc
 		- RETURN: Returns true if data is available, false otherwise.
 		The return value true may also indicate that the connection has been closed. This is the case if
 		the next call to recv() or recvString() returns zero bytes. */
-		[[nodiscard]] bool hasData(int timeoutMS = 0) const;
+		[[nodiscard]]
+		bool hasData(int timeoutMS = 0) const;
 
 		/* +++ close() +++
 		Closes the socket. */
@@ -87,7 +91,8 @@ namespace suc
 
 		/* +++ isClosed() +++
 		- RETURN: Returns true if the socket has been closed. */
-		[[nodiscard]] bool isClosed() const noexcept;
+		[[nodiscard]]
+		bool isClosed() const noexcept;
 
 	private:
 		static constexpr uint STANDARD_BUF_SIZE = 4096;

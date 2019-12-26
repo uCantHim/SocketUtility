@@ -5,8 +5,8 @@
 #include <string>
 #include <tuple>
 
-#include "SucInternals.h"
 #include "ClientSocket.h"
+#include "SucInternals.h"
 
 
 
@@ -16,9 +16,16 @@ suc::ServerSocket::ServerSocket(int port, int family)
 }
 
 
-suc::ServerSocket::~ServerSocket()
+suc::ServerSocket::~ServerSocket() noexcept
 {
-	close();
+	try
+	{
+		close();
+	}
+	catch(const suc_error& e)
+	{
+		std::cerr << "In ServerSocket::~ServerSocket(): " << e.what() << '\n';
+	}
 }
 
 
@@ -136,59 +143,14 @@ void suc::ServerSocket::bind(int port, int family)
 		throw network_error("[Linux] Unable to create a socket.");
 
 	// Initialize address to zero
-	memset(&address, sizeof(address), 0);
+	memset(&address, 0, sizeof(address));
 	address.sin_family = family;
 	address.sin_port = htons(port);
 	address.sin_addr.s_addr = INADDR_ANY;
 
-	if (linux_bind(socket, reinterpret_cast<sockaddr*>(&address), sizeof(address)) == -1)
-	{
-		int lastError = errno;
-		switch (lastError)
-		{
-		case EACCES:
-			std::cout << "Access error.\n";	
-			break;
-		case EADDRINUSE:
-			std::cout << "Address in use.\n";
-			break;
-		case EBADF:
-			std::cout << "Socket is not a valid descriptor.\n";
-			break;
-		case EINVAL:
-			std::cout << "Socket is already bound to an address.\n";
-			break;
-		case ENOTSOCK:
-			std::cout << "Socket is not a socket.\n";
-			break;
-		case EADDRNOTAVAIL:
-			std::cout << "Address not available.\n";
-			break;
-		case EFAULT:
-			std::cout << "Bad memory access.\n";
-			break;
-		case ELOOP:
-			std::cout << "Too many symbolc links.\n";
-			break;
-		case ENAMETOOLONG:
-			std::cout << "Name too long.\n";
-			break;
-		case ENOENT:
-			std::cout << "File does not exist.\n";
-			break;
-		case ENOMEM:
-			std::cout << "Out of memory.\n";
-			break;
-		case ENOTDIR:
-			std::cout << "Not a directory.\n";
-			break;
-		case EROFS:
-			std::cout << "Read only.\n";
-			break;
-		}
-		throw network_error("[Linux] Unable to bind socket to address.");
-	}
-	// TODO: Catch the correct error here (see https://www.linuxhowtos.org/data/6/bind.txt)
+	int result = linux_bind(socket, reinterpret_cast<sockaddr*>(&address), sizeof(address));
+	if (result == -1)
+		handleLastError();
 
 	// Listen
 	const int backlogQueueSize = 5; // Maximum on most systems
@@ -196,9 +158,9 @@ void suc::ServerSocket::bind(int port, int family)
 }
 
 
-std::unique_ptr<suc::ClientSocket> suc::ServerSocket::accept() const
+auto suc::ServerSocket::accept() const -> std::unique_ptr<suc::ClientSocket>
 {
-	sockaddr_in clientAddress;
+	sockaddr_in clientAddress{};
 	int addressLength = sizeof(clientAddress);
 	SOCKET newSock = linux_accept(
 		socket,

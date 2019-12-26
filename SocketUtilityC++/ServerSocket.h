@@ -55,8 +55,7 @@ namespace suc
 #endif
 
 #ifdef OS_IS_LINUX
-		int clientAddressSize{0};
-		sockaddr_in address;
+		sockaddr_in address{};
 #endif
 	};
 } // namespace suc

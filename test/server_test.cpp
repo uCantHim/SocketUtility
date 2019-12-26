@@ -1,12 +1,13 @@
 #include <iostream>
-#include <thread>
 
 #include "../SocketUtilityC++/SUC.h"
+
+constexpr int PORT = 8080;
 
 int main()
 {
 	suc::ServerSocket server;
-	server.bind(8080);
+	server.bind(PORT);
 	auto client = server.accept();
 	std::cout << "Client has connected.\n";
 

@@ -1,3 +1,7 @@
+#pragma once
+#ifndef SOCKETUTILITY_H
+#define SOCKETUTILITY_H
+
 // ---------------------------------------------------------------------------------------- //
 //																							//
 // WELCOME TO THE SUC!																		//
@@ -13,11 +17,6 @@
 //																							//
 // ----------------------------------------------------------------------------------------	//
 
-
-
-#pragma once
-#ifndef SOCKETUTILITY_H
-#define SOCKETUTILITY_H
 
 // Operating system macros
 #ifdef _WIN32
@@ -36,11 +35,11 @@
 
 // Include Linux socket headers
 #ifdef OS_IS_LINUX
+	#include <netdb.h>
 	#include <sys/types.h>
 	#include <sys/socket.h>
 	#include <sys/select.h>
 	#include <netinet/in.h>
-	#include <netdb.h>
 	#include <unistd.h> // write() and read()
 #endif
 
@@ -52,17 +51,17 @@
 
 #ifdef OS_IS_LINUX
 	#define SOCKET int
-	#define INVALID_SOCKET -1
+	#define INVALID_SOCKET (-1)
 #endif
 
+#include <cstdint>
 #include <cassert>
+#include <cstring> // memset()
 #include <iostream>
 #include <string>
-#include <cstring> // memset()
 #include <vector>
 #include <sstream>
 #include <optional>
-#include <cstdint>
 
 
 namespace suc
@@ -93,18 +92,17 @@ namespace suc
 	//													//
 	// I had to make my own exceptions to feel cool.	//
 	// ------------------------------------------------ //
-	class suc_error
+	class suc_error : public std::exception
 	{
 	public:
 		explicit suc_error(std::string msg = "") : msg(std::move(msg)) {}
-		void print() const
+
+		[[nodiscard]]
+		auto what() const noexcept -> const char* override
 		{
-			std::cout << "Exception: " << msg << std::endl;
+			return msg.c_str();
 		}
-		[[nodiscard]] const std::string& getMsg() const
-		{
-			return msg;
-		}
+
 	private:
 		std::string msg;
 	};

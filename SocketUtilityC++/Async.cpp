@@ -45,7 +45,7 @@ void suc::AsyncClient::run(std::unique_ptr<AsyncClient> client)
 			client->onMessage(received, &socket);
 		}
 		catch (const suc_error& err) {
-			std::cout << "Exception in AsyncClient " << client->id << ": " << err.getMsg()
+			std::cout << "Exception in AsyncClient " << client->id << ": " << err.what()
 				<< ". Stopping client.\n";
 			break;
 		}
@@ -100,7 +100,7 @@ void suc::AsyncServer::run(std::unique_ptr<AsyncServer> server)
 			server->onConnection(newClient);
 		}
 		catch (const suc_error& err) {
-			std::cout << "Exception in AsyncServer: " << err.getMsg()
+			std::cout << "Exception in AsyncServer: " << err.what()
 				<< ". Stopping server.\n";
 			break;
 		}
