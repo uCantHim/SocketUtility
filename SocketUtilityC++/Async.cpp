@@ -41,7 +41,7 @@ void suc::AsyncClient::run(std::unique_ptr<AsyncClient> client)
 	while (!socket.isClosed())
 	{
 		try {
-			auto received = std::move(socket.recv(SUC_TIMEOUT_NEVER).value());
+			auto received = std::move(socket.recv(TIMEOUT_NEVER).value());
 			client->onMessage(received, &socket);
 		}
 		catch (const suc_error& err) {

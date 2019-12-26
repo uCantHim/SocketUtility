@@ -18,7 +18,7 @@ namespace suc
 	{
 	public:
 		ServerSocket() noexcept = default;
-		explicit ServerSocket(int port, int family = SUC_IPV4);
+		explicit ServerSocket(int port, int family = IPV4);
 
 		ServerSocket(const ServerSocket&) = delete;
 		ServerSocket(ServerSocket&&) noexcept = default;
@@ -30,8 +30,8 @@ namespace suc
 
 		/* +++ bind() +++
 		Initializes the server.
-		- ARG family: Must be either SUC_IPV4 or SUC_IPV6. */
-		void bind(int port, int family = SUC_IPV4);
+		- ARG family: Must be either IPV4 or IPV6. */
+		void bind(int port, int family = IPV4);
 
 		/* +++ accept() +++
 		Waits for an incoming connection. Returns a ClientSocket when a client successfully connects to the ServerSocket.

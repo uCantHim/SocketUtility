@@ -4,6 +4,7 @@
 // (Socket Utility Cpp)																		//
 //																							//
 // This thing tries to simplify the shitty WinSock-lowlevel-trash.							//
+// Now with Linux support! (semi and untested)												//
 //																							//
 // Conventions:																				//
 //		- function names are suc*															//
@@ -46,7 +47,7 @@
 // Datatype defines
 #ifdef OS_IS_WINDOWS
 	#define SOCKET SOCKET
-	#define INVALID_SOCKET INVALID_SOCKET
+	//#define INVALID_SOCKET INVALID_SOCKET
 #endif
 
 #ifdef OS_IS_LINUX
@@ -57,7 +58,7 @@
 #include <cassert>
 #include <iostream>
 #include <string>
-#include <cstring>
+#include <cstring> // memset()
 #include <vector>
 #include <sstream>
 #include <optional>
@@ -76,18 +77,15 @@ namespace suc
 	using uint = std::uint32_t;
 	using ulong = std::uint64_t;
 
-	constexpr auto SUC_IPV4 = AF_INET;
-	constexpr auto SUC_IPV6 = AF_INET6;
-	constexpr auto SUC_IPVX = AF_UNSPEC;
+	constexpr auto IPV4 = AF_INET;
+	constexpr auto IPV6 = AF_INET6;
+	constexpr auto IPVX = AF_UNSPEC;
 
-	constexpr auto SUC_ADDR_LOCAL_HOST = "127.0.0.1";
-	constexpr auto SUC_ADDR_ANY = "0.0.0.0";
+	constexpr auto ADDR_LOCAL_HOST = "127.0.0.1";
+	constexpr auto ADDR_ALL = "0.0.0.0";
 
-	constexpr auto SUC_TIMEOUT_NEVER = (-1);
-	constexpr auto SUC_TIMEOUT_INSTANT = 0;
-
-
-//#pragma warning (disable: 4505)
+	constexpr auto TIMEOUT_NEVER = (-1);
+	constexpr auto TIMEOUT_INSTANT = 0;
 
 
 	// ------------------------------------------------ //
@@ -195,7 +193,6 @@ namespace suc
 
 		return result;
 	}
-
 } // namespace suc
 
 

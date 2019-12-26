@@ -396,7 +396,7 @@ auto suc::HttpResponse::makeHeaderString(const header_type& header) noexcept -> 
 suc::HttpServer::HttpServer(int port)
 {
 	auto func = std::bind(&HttpServer::handleConnection, this, std::placeholders::_1);
-	server = AsyncServer::create(port, SUC_IPV4, func);
+	server = AsyncServer::create(port, IPV4, func);
 }
 
 

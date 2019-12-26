@@ -10,7 +10,7 @@ int main()
 	{
 		suc::ClientSocket client;
 		client.connect("192.168.0.42", 8080);
-		auto msg = client.recvString(suc::SUC_TIMEOUT_NEVER);
+		auto msg = client.recvString(suc::TIMEOUT_NEVER);
 		std::cout << "Received message from server: " << msg << "\n";
 		client.sendString("Hi. I'm leaving, goodbye good sir.");
 		client.close();

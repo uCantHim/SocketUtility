@@ -70,7 +70,7 @@ namespace suc
 
 		static auto create(
 			int port,
-			int family = SUC_IPV4,
+			int family = IPV4,
 			callback<AsyncClient*> onConnection = [](AsyncClient*) {}
 		) -> AsyncServer*;
 

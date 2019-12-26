@@ -48,14 +48,14 @@ static addrinfo* sucTranslateAddress(
 #ifndef WSA_INITIALIZED
 #define WSA_INITIALIZED
 
-static bool sucInitWSA() {
+static bool sucWsaInitResult = []() {
 	WSADATA wsaData;
 
 	int iResult = WSAStartup(MAKEWORD(SUC_WSA_VERSION_MAJOR, SUC_WSA_VERSION_MINOR), &wsaData);
 	if (iResult != 0)
 	{
 		WSACleanup();
-		sucHandleErrorCode(iResult);
+		handleLastError();
 	}
 
 	if (LOBYTE(wsaData.wVersion) != 2 || HIBYTE(wsaData.wVersion) != 2)
@@ -65,9 +65,8 @@ static bool sucInitWSA() {
 	}
 
 	return true;
-}
+}();
 
-static bool sucWsaInitResult = sucInitWSA();
 
 #endif // #ifndef WSA_INITIALIZED
 
@@ -142,7 +141,7 @@ static addrinfo* sucTranslateAddress(
 		iResult = getaddrinfo(ip_address.c_str(), portStr.c_str(), &hints, &result);
 	}
 	if (iResult != 0) {
-		sucHandleErrorCode(iResult);
+		handleLastError();
 	}
 
 	return result;
@@ -259,31 +258,31 @@ static int linux_close(int fd)
 	}
 }
 
-#ifdef OS_IS_WINDOWS
-	#define EACCES WSAEACCES
-	#define EADDRINUSE WSAEADDRINUSE
-	#define EBADF WSAEBADF
-	#define EINVAL WSAEINVAL
-	#define ENOTSOCK WASENOTSOCK
-	#define EADDRNOTAVAIL WSAEADDRNOTAVAIL
-	#define EFAULT WSAEFAULT
-	#define ELOOP WSAELOOP
-	#define ENAMETOOLONG WSAENAMETOOLONG
-	#define ENOENT WSAENOENT
-	#define ENOMEM WSAENOMEM
-	#define ENOTDIR WSAENOTDIR
-	#define EROFS WSAEROFS
-	#define EAFNOSUPPORT WSAEAFNOSUPPORT
-	#define EALREADY WSAEALREADY
-	#define ECONNREFUSED WSAECONNREFUSED
-	#define EINPROGRESS WSAEINPROGRESS
-	#define EINTR WSAEINTR
-	#define EISCONN WSAEISCONN
-	#define ENETUNREACH WSAENETUNREACH
-	#define ETIMEDOUT WSAETIMEDOUT
-	#define EIO WSAEIO
-	#define EPROTOTYPE WSAEPROTOTYPE
-#endif
+//#ifdef OS_IS_WINDOWS
+//	#define EACCES WSAEACCES
+//	#define EADDRINUSE WSAEADDRINUSE
+//	#define EBADF WSAEBADF
+//	#define EINVAL WSAEINVAL
+//	#define ENOTSOCK WASENOTSOCK
+//	#define EADDRNOTAVAIL WSAEADDRNOTAVAIL
+//	#define EFAULT WSAEFAULT
+//	#define ELOOP WSAELOOP
+//	#define ENAMETOOLONG WSAENAMETOOLONG
+//	#define ENOENT WSAENOENT
+//	#define ENOMEM WSAENOMEM
+//	#define ENOTDIR WSAENOTDIR
+//	#define EROFS WSAEROFS
+//	#define EAFNOSUPPORT WSAEAFNOSUPPORT
+//	#define EALREADY WSAEALREADY
+//	#define ECONNREFUSED WSAECONNREFUSED
+//	#define EINPROGRESS WSAEINPROGRESS
+//	#define EINTR WSAEINTR
+//	#define EISCONN WSAEISCONN
+//	#define ENETUNREACH WSAENETUNREACH
+//	#define ETIMEDOUT WSAETIMEDOUT
+//	#define EIO WSAEIO
+//	#define EPROTOTYPE WSAEPROTOTYPE
+//#endif
 
 
 

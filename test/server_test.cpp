@@ -12,7 +12,7 @@ int main()
 
 	client->sendString("Hi :D");
 	client->close();
-	auto response = client->recvString(suc::SUC_TIMEOUT_NEVER);
+	auto response = client->recvString(suc::TIMEOUT_NEVER);
 	server.close();
 
 

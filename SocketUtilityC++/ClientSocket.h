@@ -26,9 +26,9 @@ namespace suc
 		- ARG ip: Specifies the server's IP address. If this is an empty string, the socket will
 		instead use the local host address.
 		- ARG port: Specifies the server's port.
-		- ARG family: Must be either SUC_IPV4, SUC_IPV6 or SUC_IPVX.
+		- ARG family: Must be either IPV4, IPV6 or IPVX.
 		- RETURN: Returns true if a connection could be established, false otherwise. */
-		bool connect(std::string ip, int port, int family = SUC_IPV4);
+		bool connect(std::string ip, int port, int family = IPV4);
 
 		/* +++ sned() +++
 		Sends data through the socket.
@@ -53,7 +53,7 @@ namespace suc
 		If the timeout parameter is set to 0, the method will return immediately if no data is available.
 		If the timeout parameter is set to -1, the method will block until data is available.
 		- RETURN: Returns the number of bytes received. */
-		[[nodiscard]] uint recv(sbyte* buf, int timeoutMS = SUC_TIMEOUT_NEVER);
+		[[nodiscard]] uint recv(sbyte* buf, int timeoutMS = TIMEOUT_NEVER);
 
 		/* +++ recv() +++
 		Attempts to read data from the socket.
@@ -61,7 +61,7 @@ namespace suc
 		If the timeout parameter is set to 0, the method will return immediately if no data is available.
 		If the timeout parameter is set to -1, the method will block until data is available.
 		- RETURN: Returns a buffer containing the received data if any data has been received. */
-		[[nodiscard]] std::optional<std::vector<sbyte>> recv(int timeoutMS = SUC_TIMEOUT_NEVER);
+		[[nodiscard]] std::optional<std::vector<sbyte>> recv(int timeoutMS = TIMEOUT_NEVER);
 
 		/* +++ recvString() +++
 		Attempts to read data from the socket.
@@ -69,7 +69,7 @@ namespace suc
 		If the timeout parameter is set to 0, the method will return immediately if no data is available.
 		If the timeout parameter is set to -1, the method will block until data is available.
 		RETURN: Returns the received data in string form. If no data could be read, this returns an empty string. */
-		[[nodiscard]] std::string recvString(int timeoutMS = SUC_TIMEOUT_NEVER);
+		[[nodiscard]] std::string recvString(int timeoutMS = TIMEOUT_NEVER);
 
 		/* +++ hasData() +++
 		Checks whether the socket has data available to be read.
