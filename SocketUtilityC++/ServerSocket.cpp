@@ -73,8 +73,8 @@ void suc::ServerSocket::bind(int port, int family)
 		throw value_error("Invalid family: " + std::to_string(family));
 	}
 
-	const auto address = family == IPV4 ? ADDR_LOCALHOST_4 : ADDR_LOCALHOST_6;
-	addrinfo* ptr = sucTranslateAddress(address, port, family, SOCK_STREAM, IPPROTO_TCP, AI_PASSIVE);
+	const auto addressString = family == IPV4 ? ADDR_LOCALHOST_4 : ADDR_LOCALHOST_6;
+	addrinfo* ptr = sucTranslateAddress(addressString, port, family, SOCK_STREAM, IPPROTO_TCP, AI_PASSIVE);
 	int iResult = 0;
 
 	// Try to bind to any of the returned connections
