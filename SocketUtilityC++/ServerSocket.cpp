@@ -186,6 +186,8 @@ void suc::ServerSocket::bind(int port, int family)
 	// Listen
 	const int backlogQueueSize = 5; // Maximum on most systems
 	linux_listen(socket, backlogQueueSize); // Cannot fail if the first argument is a valid socket descriptor
+
+	_isClosed = false;
 }
 
 

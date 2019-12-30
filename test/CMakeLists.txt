@@ -6,4 +6,4 @@ add_executable(client client_test.cpp)
 target_link_libraries(client suc)
 
 add_executable(server server_test.cpp)
-target_link_libraries(server suc)
+target_link_libraries(server suc pthread)

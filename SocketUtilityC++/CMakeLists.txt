@@ -11,6 +11,6 @@ set(SUC_SOURCES
 )
 
 add_library(
-	suc
+	suc STATIC
 	${SUC_SOURCES}
 )

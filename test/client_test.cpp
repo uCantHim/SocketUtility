@@ -9,18 +9,19 @@ int main()
 	try
 	{
 		suc::ClientSocket client;
-		client.connect("192.168.0.42", PORT);
+		client.connect(suc::ADDR_LOCALHOST_4, PORT, suc::IPV4);
 		auto msg = client.recvString(suc::TIMEOUT_NEVER);
 		std::cout << "Received message from server: " << msg << "\n";
+
+		std::cout << "\nPress any button to continue...\n";
+		std::cin.get();
 		client.sendString("Hi. I'm leaving, goodbye good sir.");
 		client.close();
 	}
 	catch (const suc::suc_error& e)
 	{
-		std::cerr << e.what();
+		std::cerr << e.what() << "\n";
 	}
 
-	std::cout << "\nPress any button to continue...\n";
-	std::cin.get();
 	return 0;
 }

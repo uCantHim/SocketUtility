@@ -71,6 +71,7 @@ namespace suc
 	//																	//
 	// These try to be more intuitive than the WinSock definitions.		//
 	// ---------------------------------------------------------------- //
+
 	using ubyte = std::uint8_t; // unsigned byte
 	using sbyte = char;	// signed byte
 	using uint = std::uint32_t;
@@ -93,6 +94,7 @@ namespace suc
 	//													//
 	// I had to make my own exceptions to feel cool.	//
 	// ------------------------------------------------ //
+
 	class suc_error : public std::exception
 	{
 	public:

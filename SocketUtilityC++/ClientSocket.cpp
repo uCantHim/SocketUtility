@@ -204,6 +204,7 @@ bool suc::ClientSocket::connect(std::string ip, int port, int family)
 	if (result == -1)
 		handleLastError();
 
+	_isClosed = false;
 	return true;
 }
 
