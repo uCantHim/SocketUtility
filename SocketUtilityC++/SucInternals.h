@@ -4,27 +4,13 @@
 
 #include "SocketUtility.h"
 
-// -------------------------------------------- //
-//		Windows implementation internals		//
-// -------------------------------------------- //
+constexpr auto ADDRESS_TRANSLATE_MAX_TRY_AGAIN = 10;
 
 /* +++ handleLastError() +++
 Generates a suitable exception for the lastest error. */
 [[noreturn]] static void handleLastError();
 
-
-#ifdef OS_IS_WINDOWS
-
-constexpr auto SUC_WSA_VERSION_MAJOR = 2;
-constexpr auto SUC_WSA_VERSION_MINOR = 2;
-constexpr auto SUC_ADDRESS_TRANSLATE_MAX_TRY_AGAIN = 10;
-
-
-// -------------- //
-// Function heads //
-// -------------- //
-
-/* +++ sucTranslateAddress() +++
+/* +++ translateAddress() +++
 Translates an IP address in string representation (xxx.xxx.xxx.xxx) into a WSA-addrinfo.
 
 - ARG ip_address: The IP address in readable string format.
@@ -36,11 +22,17 @@ Translates an IP address in string representation (xxx.xxx.xxx.xxx) into a WSA-a
 
 - RETURN: Returns a addrinfo-structure if the translation has been successful, nullptr otherwise.
 */
-static addrinfo* sucTranslateAddress(
+static addrinfo* translateAddress(
 	const std::string& ip_address, int port,
 	int family, int type, int protocol, int flags
 );
 
+
+#ifdef OS_IS_WINDOWS
+// Initialize WSA because Microsoft is retarded
+
+constexpr auto SUC_WSA_VERSION_MAJOR = 2;
+constexpr auto SUC_WSA_VERSION_MINOR = 2;
 
 // -------------- //
 // Initialize WSA //
@@ -69,57 +61,105 @@ static bool sucWsaInitResult = []() {
 
 
 #endif // #ifndef WSA_INITIALIZED
+#endif // #ifdef OS_IS_WINDOWS
 
 
+// ------------------------------------------------ //
+//                                                  //
+//		Cross-platform implementation internals		//
+//                                                  //
+// ------------------------------------------------ //
 
-// --------------------------------------------------------------------	//
-//						WinSock-functions rename						//
-//																		//
-// I have to do this to avoid naming conflicts with Socket methods.		//
-// -------------------------------------------------------------------- //
 
-static SOCKET winsock_socket(int af, int type, int protocol)
+// SOCKET
+static SOCKET suc_socket(int domain, int type, int protocol)
 {
-	return socket(af, type, protocol);
+	return socket(domain, type, protocol);
 }
-static int winsock_bind(SOCKET s, const sockaddr* name, int namelen)
+
+// BIND
+static int suc_bind(SOCKET s, sockaddr* addr, int addrlen)
 {
-	return bind(s, name, namelen);
+#ifdef OS_IS_WINDOWS
+	return bind(s, addr, addrlen);
+#endif
+#ifdef OS_IS_LINUX
+	return bind(s, addr, static_cast<socklen_t>(addrlen));
+#endif
 }
-static int winsock_listen(SOCKET s, int backlog)
+
+// LISTEN
+static int suc_listen(SOCKET s, int backlog)
 {
 	return listen(s, backlog);
 }
-static SOCKET winsock_accept(SOCKET s, sockaddr* addr, int* addrlen)
+
+// ACCEPT
+static SOCKET suc_accept(SOCKET s, sockaddr* addr, int* addrlen)
 {
-	return accept(s, addr, addrlen);
+#ifdef OS_IS_WINDOWS
+	return accept(s, addr, static_cast<socklen_t*>(addrlen));
+#endif
+#ifdef OS_IS_LINUX
+	// Use socklen_t because Linux is retarded
+	auto _addrlen = static_cast<socklen_t>(*addrlen);
+	return accept(s, addr, &_addrlen);
+#endif
 }
-static int winsock_connect(SOCKET s, const sockaddr* name, int namelen)
+
+// CONNECT
+static int suc_connect(SOCKET s, sockaddr* addr, int addrlen)
 {
-	return connect(s, name, namelen);
+#ifdef OS_IS_WINDOWS
+	return connect(s, addr, addrlen);
+#endif
+#ifdef OS_IS_LINUX
+	return connect(s, addr, static_cast<socklen_t>(addrlen));
+#endif
 }
-static int winsock_recv(SOCKET s, char* buf, int len, int flags)
+
+// RECV
+static int suc_recv(SOCKET s, void* buf, size_t len, int flags)
 {
-	return recv(s, buf, len, flags);
+#ifdef OS_IS_WINDOWS
+	// Cast buffer to char* because Microsoft is retarded
+	return recv(s, reinterpret_cast<char*>(buf), static_cast<int>(len), flags);
+#endif
+#ifdef OS_IS_LINUX
+	return static_cast<int>(recv(s, buf, len, flags));
+#endif
 }
-static int winsock_send(SOCKET s, const char* buf, int len, int flags)
+
+// SEND
+static int suc_send(SOCKET s, const void* buf, size_t len, int flags)
 {
-	return send(s, buf, len, flags);
+#ifdef OS_IS_WINDOWS
+	return send(s, reinterpret_cast<const char*>(buf), static_cast<int>(len), flags);
+#endif
+#ifdef OS_IS_LINUX
+	return static_cast<int>(send(s, buf, len, flags));
+#endif
 }
-static int winsock_select(int nfds, fd_set* readfds, fd_set* writefds, fd_set* exceptfds, const timeval* timeout)
+
+// SELECT
+static int suc_select(int nfds, fd_set* readfds, fd_set* writefds, fd_set* exceptfds, timeval* timeout)
 {
 	return select(nfds, readfds, writefds, exceptfds, timeout);
 }
 
+// CLOSE
+static int suc_close(SOCKET s)
+{
+#ifdef OS_IS_WINDOWS
+	return closesocket(s);
+#endif
+#ifdef OS_IS_LINUX
+	return close(s);
+#endif
+}
 
 
-// ----------------------------------------------------	//
-//					Helper functions					//
-//														//
-// These help me with some recurring WinSock tasks.		//
-// ---------------------------------------------------- //
-
-static addrinfo* sucTranslateAddress(
+static addrinfo* translateAddress(
 	const std::string& ip_address, int port,
 	int family, int type, int protocol, int flags)
 {
@@ -137,7 +177,7 @@ static addrinfo* sucTranslateAddress(
 	iResult = getaddrinfo(nullptr, portStr.c_str(), &hints, &result);
 
 	// iResult == WSATRY_AGAIN
-	for (int attempts = 0; iResult == WSATRY_AGAIN && attempts < SUC_ADDRESS_TRANSLATE_MAX_TRY_AGAIN; attempts++) {
+	for (int attempts = 0; iResult == EAI_AGAIN && attempts < ADDRESS_TRANSLATE_MAX_TRY_AGAIN; attempts++) {
 		iResult = getaddrinfo(ip_address.c_str(), portStr.c_str(), &hints, &result);
 	}
 	if (iResult != 0) {
@@ -147,63 +187,21 @@ static addrinfo* sucTranslateAddress(
 	return result;
 }
 
-#endif // #ifdef OS_IS_WINDOWS
 
-
-
-// ---------------------------------------- //
-//		Linux implementation internals		//
-// ---------------------------------------- //
-
+static auto getLastError()
+{
+#ifdef OS_IS_WINDOWS
+	return WSAGetLastError();
+#endif
 #ifdef OS_IS_LINUX
-
-static SOCKET linux_socket(int domain, int type, int protocol)
-{
-	return socket(domain, type, protocol);
+	return errno;
+#endif
 }
-
-static int linux_bind(int s, sockaddr* name, int namelen)
-{
-	return bind(s, name, namelen);
-}
-
-static int linux_listen(int s, int backlog)
-{
-	return listen(s, backlog);
-}
-
-static SOCKET linux_accept(int s, sockaddr* addr, socklen_t* addrlen)
-{
-	return accept(s, addr, addrlen);
-}
-
-static int linux_connect(int s, sockaddr* name, int namelen)
-{
-	return connect(s, name, namelen);
-}
-
-static int linux_close(int fd)
-{
-	return close(fd);
-}
-
-static ssize_t linux_recv(int fd, void* buf, size_t len, int flags)
-{
-	return recv(fd, buf, len, flags);
-}
-
-#endif // #ifdef OS_IS_LINUX
-
 
 
 [[noreturn]] static void handleLastError()
 {
-#ifdef OS_IS_WINDOWS
-	auto lastError = WSAGetLastError();
-#endif
-#ifdef OS_IS_LINUX
-	auto lastError = errno;
-#endif
+	auto lastError = getLastError();
 
 	switch(lastError)
 	{
@@ -263,31 +261,31 @@ static ssize_t linux_recv(int fd, void* buf, size_t len, int flags)
 	}
 }
 
-//#ifdef OS_IS_WINDOWS
-//	#define EACCES WSAEACCES
-//	#define EADDRINUSE WSAEADDRINUSE
-//	#define EBADF WSAEBADF
-//	#define EINVAL WSAEINVAL
-//	#define ENOTSOCK WASENOTSOCK
-//	#define EADDRNOTAVAIL WSAEADDRNOTAVAIL
-//	#define EFAULT WSAEFAULT
-//	#define ELOOP WSAELOOP
-//	#define ENAMETOOLONG WSAENAMETOOLONG
-//	#define ENOENT WSAENOENT
-//	#define ENOMEM WSAENOMEM
-//	#define ENOTDIR WSAENOTDIR
-//	#define EROFS WSAEROFS
-//	#define EAFNOSUPPORT WSAEAFNOSUPPORT
-//	#define EALREADY WSAEALREADY
-//	#define ECONNREFUSED WSAECONNREFUSED
-//	#define EINPROGRESS WSAEINPROGRESS
-//	#define EINTR WSAEINTR
-//	#define EISCONN WSAEISCONN
-//	#define ENETUNREACH WSAENETUNREACH
-//	#define ETIMEDOUT WSAETIMEDOUT
-//	#define EIO WSAEIO
-//	#define EPROTOTYPE WSAEPROTOTYPE
-//#endif
+#ifdef OS_IS_WINDOWS
+	#define EACCES WSAEACCES
+	#define EADDRINUSE WSAEADDRINUSE
+	#define EBADF WSAEBADF
+	#define EINVAL WSAEINVAL
+	#define ENOTSOCK WASENOTSOCK
+	#define EADDRNOTAVAIL WSAEADDRNOTAVAIL
+	#define EFAULT WSAEFAULT
+	#define ELOOP WSAELOOP
+	#define ENAMETOOLONG WSAENAMETOOLONG
+	#define ENOENT WSAENOENT
+	#define ENOMEM WSAENOMEM
+	#define ENOTDIR WSAENOTDIR
+	#define EROFS WSAEROFS
+	#define EAFNOSUPPORT WSAEAFNOSUPPORT
+	#define EALREADY WSAEALREADY
+	#define ECONNREFUSED WSAECONNREFUSED
+	#define EINPROGRESS WSAEINPROGRESS
+	#define EINTR WSAEINTR
+	#define EISCONN WSAEISCONN
+	#define ENETUNREACH WSAENETUNREACH
+	#define ETIMEDOUT WSAETIMEDOUT
+	#define EIO WSAEIO
+	#define EPROTOTYPE WSAEPROTOTYPE
+#endif
 
 
 

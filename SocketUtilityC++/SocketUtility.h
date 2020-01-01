@@ -20,10 +20,10 @@
 
 // Operating system macros
 #ifdef _WIN32
-	#define OS_IS_WINDOWS _WIN32
+	#define OS_IS_WINDOWS
 #endif
 #ifdef __linux__
-	#define OS_IS_LINUX __linux__
+	#define OS_IS_LINUX
 #endif
 
 // Include windows socket headers
@@ -53,6 +53,7 @@
 #ifdef OS_IS_LINUX
 	#define SOCKET int
 	#define INVALID_SOCKET (-1)
+	#define SOCKET_ERROR (-1)
 #endif
 
 #include <cstdint>
@@ -86,7 +87,7 @@ namespace suc
 	constexpr auto ADDR_LOCALHOST_6 = "::1";
 	constexpr auto ADDR_ALL = "0.0.0.0";
 
-	constexpr auto TIMEOUT_NEVER = (-1);
+	constexpr auto TIMEOUT_NEVER = -1;
 	constexpr auto TIMEOUT_INSTANT = 0;
 
 
@@ -140,8 +141,6 @@ namespace suc
 	public:
 		explicit memory_error(std::string msg = "") : suc_error(std::move(msg)) {}
 	};
-
-
 
 
 	// ---------------------------- //

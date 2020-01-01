@@ -50,13 +50,7 @@ namespace suc
 		bool _isClosed{ true };
 		SOCKET socket{ INVALID_SOCKET };
 
-#ifdef OS_IS_WINDOWS
-		addrinfo* address{ nullptr };
-#endif
-
-#ifdef OS_IS_LINUX
 		sockaddr_in address{};
-#endif
 	};
 } // namespace suc
 

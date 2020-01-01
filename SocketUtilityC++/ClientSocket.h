@@ -34,7 +34,7 @@ namespace suc
 		Sends data through the socket.
 		- ARG buf: Specifies the data that shall be sent through the socket.
 		- ARG size: Specifies the size of the data buffer (the number of bytes to be sent). */
-		void send(const sbyte* buf, uint size);
+		void send(const void* buf, size_t size);
 
 		/* +++ sned() +++
 		Sends data through the socket.
@@ -44,7 +44,7 @@ namespace suc
 		/* +++ sendString() +++
 		Sends a string through the socket.
 		ARG str: The string that will be sent to the client. */
-		void sendString(const std::string& to_str);
+		void sendString(const std::string& str);
 
 		/* +++ recv() +++
 		Attempts to read data from the socket.
@@ -54,7 +54,7 @@ namespace suc
 		If the timeout parameter is set to -1, the method will block until data is available.
 		- RETURN: Returns the number of bytes received. */
 		[[nodiscard]]
-		uint recv(sbyte* buf, int timeoutMS = TIMEOUT_NEVER);
+		uint recv(void* buf, int timeoutMS = TIMEOUT_NEVER);
 
 		/* +++ recv() +++
 		Attempts to read data from the socket.
