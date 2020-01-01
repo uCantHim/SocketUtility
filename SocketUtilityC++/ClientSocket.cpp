@@ -227,7 +227,7 @@ suc::uint suc::ClientSocket::recv(sbyte* buf, int timeoutMS)
 		return 0U;
 	}
 
-	int readBytes = read(socket, recvbuf.data(), recvbuf.size());
+	ssize_t readBytes = linux_recv(socket, recvbuf.data(), recvbuf.size(), 0);
 	if (readBytes > recvbuf.size() - REMAINING_BUF_SPACE_CAP)
 	{
 		recvbuf.resize(recvbuf.size() * 2);

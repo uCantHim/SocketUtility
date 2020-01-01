@@ -205,8 +205,7 @@ auto suc::ServerSocket::accept() const -> std::unique_ptr<suc::ClientSocket>
 		throw network_error("[Linux] Unable to accept connection.");
 
 	// Create ClientSocket
-	auto newClient = std::make_unique<ClientSocket>(newSock);
-	return newClient;
+	return std::make_unique<ClientSocket>(newSock);
 }
 
 

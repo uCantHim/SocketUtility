@@ -187,6 +187,11 @@ static int linux_close(int fd)
 	return close(fd);
 }
 
+static ssize_t linux_recv(int fd, void* buf, size_t len, int flags)
+{
+	return recv(fd, buf, len, flags);
+}
+
 #endif // #ifdef OS_IS_LINUX
 
 

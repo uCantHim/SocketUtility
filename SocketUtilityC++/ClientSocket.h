@@ -96,7 +96,7 @@ namespace suc
 
 	private:
 		static constexpr uint STANDARD_BUF_SIZE = 4096;
-		static constexpr int REMAINING_BUF_SPACE_CAP = 20;
+		static constexpr size_t REMAINING_BUF_SPACE_CAP = 20;
 
 		std::vector<sbyte> recvbuf = std::vector<sbyte>(STANDARD_BUF_SIZE);
 

@@ -40,12 +40,13 @@
 	#include <sys/socket.h>
 	#include <sys/select.h>
 	#include <netinet/in.h>
+	#include <arpa/inet.h> // Might fix some segfault
 	#include <unistd.h> // write() and read()
 #endif
 
 // Datatype defines
 #ifdef OS_IS_WINDOWS
-	#define SOCKET SOCKET
+	//#define SOCKET SOCKET
 	//#define INVALID_SOCKET INVALID_SOCKET
 #endif
 
