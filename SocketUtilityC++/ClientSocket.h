@@ -1,7 +1,6 @@
 #ifndef CLIENTSOCKET_H
 #define CLIENTSOCKET_H
 
-#include <optional>
 #include <string>
 
 #include "SocketUtility.h"
@@ -28,77 +27,111 @@ namespace suc
 		- ARG port: Specifies the server's port.
 		- ARG family: Must be either IPV4, IPV6 or IPVX.
 		- RETURN: Returns true if a connection could be established, false otherwise. */
+		/**
+		 * Attempt to connect to a remote server.
+		 * 
+		 * @param std::string ip The server's IP address. An empty string or the string "localhost"
+		 * is interpreted as the localhost address.
+		 * @param int port The server's port
+		 * @param int family: Must be either IPV4, IPV6 or IPVX. WARNING: IPv6 currently not supported.
+		 * 
+		 * @return bool True if the connection was successfully established, false otherwise.
+		 * 
+		 * @throw suc_error
+		 */
 		bool connect(std::string ip, int port, int family = IPV4);
 
-		/* +++ sned() +++
-		Sends data through the socket.
-		- ARG buf: Specifies the data that shall be sent through the socket.
-		- ARG size: Specifies the size of the data buffer (the number of bytes to be sent). */
+		/**
+		 * Send data through the socket. This is the classic c-style signature version.
+		 * 
+		 * @param const void* buf  The data to be sent
+		 * @param size_t 	  size The size of the buffer
+		 * 
+		 * @throw suc_error
+		 */
 		void send(const void* buf, size_t size);
 
-		/* +++ sned() +++
-		Sends data through the socket.
-		- ARG buf: Specifies the data that shall be sent through the socket. */
+		/**
+		 * Send data through the socket.
+		 * 
+		 * @param const std::vector<sbyte>& buf
+		 * 
+		 * @throw suc_error
+		 */
 		void send(const std::vector<sbyte>& buf);
 
-		/* +++ sendString() +++
-		Sends a string through the socket.
-		ARG str: The string that will be sent to the client. */
-		void sendString(const std::string& str);
+		/**
+		 * Send data through the socket.
+		 * 
+		 * @param const std::string& str
+		 * 
+		 * @throw suc_error
+		 */
+		void send(const std::string& str);
 
-		/* +++ recv() +++
-		Attempts to read data from the socket.
-		- ARG buf: The buffer the data will be read to.
-		- ARG timeoutMS: Specifies the time in milliseconds that the socket will wait for incoming data.
-		If the timeout parameter is set to 0, the method will return immediately if no data is available.
-		If the timeout parameter is set to -1, the method will block until data is available.
-		- RETURN: Returns the number of bytes received. */
+		/**
+		 * Read data from the socket.
+
+		 * @param int timeout: Specifies the time in milliseconds that the socket will wait for incoming data.
+		 * If the timeout parameter is set to 0, the method will return immediately if no data is available.
+		 * If the timeout parameter is set to -1, the method will block until data is available.
+
+		 * @return std::vector<sbyte> The received data. Is empty if the timeout has expired and no data has been
+		 * received.
+		 * 
+		 * @throw suc_error
+		 */
 		[[nodiscard]]
-		uint recv(void* buf, int timeoutMS = TIMEOUT_NEVER);
+		auto recv(int timeout = TIMEOUT_NEVER) -> std::vector<sbyte>;
 
-		/* +++ recv() +++
-		Attempts to read data from the socket.
-		- ARG timeoutMS: Specifies the time in milliseconds that the socket will wait for incoming data.
-		If the timeout parameter is set to 0, the method will return immediately if no data is available.
-		If the timeout parameter is set to -1, the method will block until data is available.
-		- RETURN: Returns a buffer containing the received data if any data has been received. */
+		/**
+		 * Read data from the socket.
+
+		 * @param int timeoutMS: Specifies the time in milliseconds that the socket will wait for incoming data.
+		 * If the timeout parameter is set to 0, the method will return immediately if no data is available.
+		 * If the timeout parameter is set to -1, the method will block until data is available.
+
+		 * @return std::string The received data as a string. Is empty if the timeout has expired and no data has been
+		 * received.
+		 * 
+		 * @throw suc_error
+		 */
 		[[nodiscard]]
-		auto recv(int timeoutMS = TIMEOUT_NEVER) -> std::optional<std::vector<sbyte>>;
+		auto recvString(int timeout = TIMEOUT_NEVER) -> std::string;
 
-		/* +++ recvString() +++
-		Attempts to read data from the socket.
-		- ARG timeoutMS: Specifies the time in milliseconds that the socket will wait for incoming data.
-		If the timeout parameter is set to 0, the method will return immediately if no data is available.
-		If the timeout parameter is set to -1, the method will block until data is available.
-		RETURN: Returns the received data in string form. If no data could be read, this returns an empty string. */
+		/**
+		 * Tests if the socket has data ready to read.
+		 * 
+		 * @param int timeout Specifies the time in milliseconds that the method waits for data to become available.
+		 * If the timeout parameter is set to 0, the method will return immediately.
+		 * If the timeout parameter is set to -1, the method will block until data is available.
+		 * 
+		 * @return bool True if data is available, false otherwise.
+		 * Is also true if the connection has been closed remotely. If this is the case, the next call to recv()
+		 * or recvString() returns nothing.
+		 * 
+		 * @throw suc_error
+		 */
 		[[nodiscard]]
-		auto recvString(int timeoutMS = TIMEOUT_NEVER) -> std::string;
+		bool hasData(int timeout = TIMEOUT_NEVER) const;
 
-		/* +++ hasData() +++
-		Checks whether the socket has data available to be read.
-		- ARG timeoutMS: Specifies the time in milliseconds that the method shall for data to be available.
-		If the timeout parameter is set to 0, the method will return immediately.
-		If the timeout parameter is set to -1, the method will block until data is available.
-		- RETURN: Returns true if data is available, false otherwise.
-		The return value true may also indicate that the connection has been closed. This is the case if
-		the next call to recv() or recvString() returns zero bytes. */
-		[[nodiscard]]
-		bool hasData(int timeoutMS = 0) const;
-
-		/* +++ close() +++
-		Closes the socket. */
+		/**
+		 * Close the socket.
+		 * 
+		 * @throw suc_error
+		 */
 		void close();
 
-		/* +++ isClosed() +++
-		- RETURN: Returns true if the socket has been closed. */
+		/**
+		 * Queries whether the socket has been closed.
+		 * 
+		 * @return bool True if the socket is closed, false othwerwise
+		 */
 		[[nodiscard]]
 		bool isClosed() const noexcept;
 
 	private:
-		static constexpr uint STANDARD_BUF_SIZE = 4096;
-		static constexpr size_t REMAINING_BUF_SPACE_CAP = 20;
-
-		std::vector<sbyte> recvbuf = std::vector<sbyte>(STANDARD_BUF_SIZE);
+		static constexpr size_t STANDARD_BUF_SIZE = 4096;
 
 		SOCKET socket{ INVALID_SOCKET };
 		bool _isClosed{ true };

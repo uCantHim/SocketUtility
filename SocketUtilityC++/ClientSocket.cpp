@@ -27,7 +27,6 @@ suc::ClientSocket::~ClientSocket() noexcept
 suc::ClientSocket::ClientSocket(ClientSocket&& other) noexcept
 {
 	std::swap(socket, other.socket);
-	std::swap(recvbuf, other.recvbuf);
 	std::swap(_isClosed, other._isClosed);
 }
 
@@ -35,7 +34,6 @@ suc::ClientSocket::ClientSocket(ClientSocket&& other) noexcept
 suc::ClientSocket& suc::ClientSocket::operator=(ClientSocket&& rhs) noexcept
 {
 	std::swap(socket, rhs.socket);
-	std::swap(recvbuf, rhs.recvbuf);
 	std::swap(_isClosed, rhs._isClosed);
 
 	return *this;
@@ -88,33 +86,34 @@ void suc::ClientSocket::send(const void* buf, size_t size)
 }
 
 
-suc::uint suc::ClientSocket::recv(void* buf, int timeoutMS)
+auto suc::ClientSocket::recv(int timeout) -> std::vector<sbyte>
 {
-	if (!hasData(timeoutMS)) {
-		return 0U;
+	// Wait for the timeout
+	if (!hasData(timeout)) {
+		return {};
 	}
 
-	int readBytes = suc_recv(socket, recvbuf.data(), recvbuf.size(), 0);
-	if (readBytes > recvbuf.size() - REMAINING_BUF_SPACE_CAP)
+	std::vector<sbyte> buf(STANDARD_BUF_SIZE);
+	int readBytes = 0;
+	while (true)
 	{
-		recvbuf.resize(recvbuf.size() * 2);
+		int read = suc_recv(socket, buf.data() + readBytes, buf.size() - readBytes, 0);
+		if (read == 0)
+			handleLastError();
+
+		readBytes += read;
+		if (readBytes < buf.size())
+			break;
+
+		buf.resize(buf.size() * 2);
 	}
 
-	if (readBytes > 0) // Received data
-	{
-		memcpy(buf, recvbuf.data(), static_cast<size_t>(readBytes));
-		return static_cast<uint>(readBytes);
-	}
-	if (readBytes == 0) // Connection has been closed remotely
-	{
-		handleLastError();
-	}
-
-	handleLastError();
+	buf.resize(static_cast<size_t>(readBytes));
+	return buf;
 }
 
 
-bool suc::ClientSocket::hasData(int timeoutMS) const
+bool suc::ClientSocket::hasData(int timeout) const
 {
 	// select() is POSIX-standardized but I still wrote a separate implementation
 	// for it. I shall look into this.
@@ -122,12 +121,12 @@ bool suc::ClientSocket::hasData(int timeoutMS) const
 	FD_SET(socket, &read);
 
 	constexpr std::int32_t secondsFactor = 1000L;
-	timeval timeout{};
-	timeout.tv_usec = static_cast<std::int32_t>(timeoutMS) % secondsFactor;
-	timeout.tv_sec = (static_cast<std::int32_t>(timeoutMS) - timeout.tv_usec) / secondsFactor;
+	timeval time{};
+	time.tv_usec = static_cast<std::int32_t>(timeout) % secondsFactor;
+	time.tv_sec = (static_cast<std::int32_t>(timeout) - time.tv_usec) / secondsFactor;
 
-	timeval* t_ptr = &timeout;
-	if (timeoutMS == -1)
+	timeval* t_ptr = &time;
+	if (timeout == -1)
 		t_ptr = nullptr;
 
 	int numSockets = suc_select(socket + 1, &read, nullptr, nullptr, t_ptr);
@@ -156,31 +155,17 @@ void suc::ClientSocket::send(const std::vector<sbyte>& buf)
 }
 
 
-void suc::ClientSocket::sendString(const std::string& str)
+void suc::ClientSocket::send(const std::string& str)
 {
 	send(str.c_str(), str.size());
 }
 
 
-std::optional<std::vector<suc::sbyte>> suc::ClientSocket::recv(int timeoutMS)
+std::string suc::ClientSocket::recvString(int timeout)
 {
-	uint bytes = recv(recvbuf.data(), timeoutMS);
-	if (bytes == 0) {
-		return std::nullopt;
-	}
+	auto result = recv(timeout);
 
-	return recvbuf;
-}
-
-
-std::string suc::ClientSocket::recvString(int timeoutMS)
-{
-	uint bytes = recv(recvbuf.data(), timeoutMS);
-	if (bytes == 0) {
-		return std::string();
-	}
-
-	return std::string{ recvbuf.data(), bytes };
+	return std::string{ result.data(), result.size() };
 }
 
 

@@ -14,76 +14,70 @@ namespace suc
 	template<typename... Args>
 	using callback = std::function<void(Args...)>;
 
-
-	class AsyncClient
-	{
-		explicit AsyncClient(std::unique_ptr<ClientSocket> client);
-
-		AsyncClient(AsyncClient&&) noexcept = default;
-		AsyncClient& operator=(AsyncClient&&) noexcept = default;
-
-	public:
-		AsyncClient(const AsyncClient&) = delete;
-		AsyncClient& operator=(const AsyncClient&) = delete;
-
-		/*
-		Creates an asynchronous client from a ClientSocket.
-		Basically detaches the passed client connection from the current thread. */
-		static auto create(std::unique_ptr<ClientSocket> client) -> AsyncClient*;
-
-		/*
-		Returns the unique ID of the client. */
-		[[nodiscard]]
-		auto getId() const noexcept -> size_t;
-
-		/*
-		Called when the client receives a message. */
-		callback<const ByteBuffer&, ClientSocket*> onMessage;
-		/*
-		Calles when the client's thread terminates.
-		This may happen when the connection is closed remotely or an error occurs
-		in the socket. */
-		callback<AsyncClient*> onTerminate;
-
-	private:
-		/*
-		AsyncClient::run() holds the ownership of the actual client.
-		This works because AsyncClient::create() is the only way to create new
-		AsyncClients. */
-		static void run(std::unique_ptr<AsyncClient> client);
-
-		std::unique_ptr<ClientSocket> socket;
-		size_t id;
-	};
-
-
 	class AsyncServer
 	{
-		AsyncServer(int port, int family);
-		AsyncServer(AsyncServer&&) noexcept = default;
-		AsyncServer& operator=(AsyncServer&&) noexcept = default;
-
 	public:
-		AsyncServer(const AsyncServer&) = delete;
-		AsyncServer& operator=(const AsyncServer&) = delete;
+		AsyncServer(int port, int family, callback<ClientSocket> onConnection = [](ClientSocket) {});
+		AsyncServer(AsyncServer&&) noexcept = default;
 		~AsyncServer() noexcept;
 
-		static auto create(
-			int port,
-			int family = IPV4,
-			callback<AsyncClient*> onConnection = [](AsyncClient*) {}
-		) -> AsyncServer*;
+		AsyncServer(const AsyncServer&) = delete;
+		AsyncServer& operator=(const AsyncServer&) = delete;
+		AsyncServer& operator=(AsyncServer&&) noexcept = delete;
 
-		void terminate();
+		/**
+		 * Starts the server.
+		 * The server runs in a detached thread.
+		 * 
+		 * The server waits for incoming connections and passes them to the onConnection callback.
+		 * When an error occurs that requires the server to terminate, onError is called and the
+		 * server is closed.
+		 * 
+		 * Calling start() while the server is running does nothing. Calling start() after the server
+		 * has been stopped (or an error has occured for that matter) restarts the server on the same
+		 * port and with the same family.
+		 * 
+		 * Throws an exception if connect() or bind() of the underlying socket fail.
+		 * 
+		 * @throw suc::suc_error
+		 */
+		void start();
 
-		/*
-		Called when a new client connects to the server. */
-		callback<AsyncClient*> onConnection;
+		/**
+		 * Stops the server.
+		 */
+		void stop();
+
+		/**
+		 * Called when a client connects to the server.
+		 * 
+		 * @param ClientSocket newClient The connecting client
+		 */
+		void onConnection(std::function<void(ClientSocket)> f);
+
+		/**
+		 * Called when an error occurs during server execution.
+		 * 
+		 * @param const suc_error& The exception that occured in the server thread
+		 */
+		void onError(std::function<void(const suc_error&)> f);
+
+		/**
+		 * Called when the server thread terminates.
+		 */
+		void onTerminate(std::function<void(void)> f);
 
 	private:
-		static void run(std::unique_ptr<AsyncServer> server);
+		const int port;
+		const int family;
 
-		ServerSocket socket;
+		callback<ClientSocket> onConnectionFunc;
+		callback<const suc_error&> onErrorFunc;
+		callback<> onTerminateFunc;
+
+		ServerSocket socket{};
+		bool shouldClose{ false }; // Indicates whether stop() has been called or an error occured
+		bool isRunning{ false };
 	};
 } // namespace suc
 

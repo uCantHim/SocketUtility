@@ -8,6 +8,7 @@ set(SUC_SOURCES
 	SucInternals.h
 	ClientSocket.h ClientSocket.cpp
 	ServerSocket.h ServerSocket.cpp
+	Async.h Async.cpp
 )
 
 add_library(

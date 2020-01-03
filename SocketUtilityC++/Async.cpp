@@ -1,108 +1,78 @@
 #include "Async.h"
 
-#include <iostream>
-
-
-
-// ------------------------ //
-//		Client class		//
-// ------------------------ //
-
-suc::AsyncClient::AsyncClient(std::unique_ptr<ClientSocket> client)
-	:
-	socket(std::move(client)),
-	onMessage([](const ByteBuffer&, ClientSocket*) {}),
-	onTerminate([](AsyncClient*) {})
-{
-	static size_t nextId = 1;
-	id = nextId++;
-}
-
-
-auto suc::AsyncClient::create(std::unique_ptr<ClientSocket> client) -> AsyncClient*
-{
-	auto newClient = std::unique_ptr<AsyncClient>(new AsyncClient(std::move(client)));
-	AsyncClient* result = newClient.get();
-	std::thread{ &AsyncClient::run, std::move(newClient) }.detach();
-
-	return result;
-}
-
-
-auto suc::AsyncClient::getId() const noexcept -> size_t
-{
-	return id;
-}
-
-
-void suc::AsyncClient::run(std::unique_ptr<AsyncClient> client)
-{
-	auto& socket = *client->socket;
-	while (!socket.isClosed())
-	{
-		try {
-			auto received = std::move(socket.recv(TIMEOUT_NEVER).value());
-			client->onMessage(received, &socket);
-		}
-		catch (const suc_error& err) {
-			std::cout << "Exception in AsyncClient " << client->id << ": " << err.what()
-				<< ". Stopping client.\n";
-			break;
-		}
-	}
-
-	client->onTerminate(client.get());
-}
-
 
 
 // ------------------------ //
 //		Server class		//
 // ------------------------ //
 
-suc::AsyncServer::AsyncServer(int port, int family)
+suc::AsyncServer::AsyncServer(int port, int family, callback<ClientSocket> onConnection)
 	:
-	socket(port, family)
+	port(port),
+	family(family),
+	onConnectionFunc(std::move(onConnection)),
+	onErrorFunc([](auto) {}),
+	onTerminateFunc([]() {})
 {
 }
 
 
 suc::AsyncServer::~AsyncServer() noexcept
 {
-	std::cout << "AsyncServer destroyed.\n";
+	stop();
+	while (isRunning); // Wait for the thread to terminate
 }
 
 
-auto suc::AsyncServer::create(int port, int family, callback<AsyncClient*> onConnection) -> AsyncServer*
+void suc::AsyncServer::start()
 {
-	auto newServer = std::unique_ptr<AsyncServer>(new AsyncServer(port, family));
-	newServer->onConnection = std::move(onConnection);
-	AsyncServer* result = newServer.get();
-	std::thread{ &AsyncServer::run, std::move(newServer) }.detach();
+	if (isRunning) return;
 
-	return result;
+	socket.close();
+	socket.bind(port, family);
+
+	std::thread([&]() {
+		isRunning = true;
+		shouldClose = false;
+		while (!socket.isClosed())
+		{
+			try {
+				auto newClient = socket.accept();
+				onConnectionFunc(std::move(newClient));
+			}
+			catch (const suc_error& err) {
+				// It is normal for accept() to throw an error when the socket has been
+				// closed. Only call onError when the socket hasn't been closed manually.
+				if (!shouldClose)
+				{
+					stop();
+					onErrorFunc(err);
+				}
+			}
+		}
+		onTerminateFunc();
+		isRunning = false;
+	}).detach();
 }
 
 
-void suc::AsyncServer::terminate()
+void suc::AsyncServer::stop()
 {
+	shouldClose = true;
 	socket.close();
 }
 
-
-void suc::AsyncServer::run(std::unique_ptr<AsyncServer> server)
+void suc::AsyncServer::onConnection(std::function<void(ClientSocket)> f)
 {
-	auto& socket = server->socket;
-	while (!socket.isClosed())
-	{
-		try {
-			auto newClient = AsyncClient::create(std::move(socket.accept()));
-			server->onConnection(newClient);
-		}
-		catch (const suc_error& err) {
-			std::cout << "Exception in AsyncServer: " << err.what()
-				<< ". Stopping server.\n";
-			break;
-		}
-	}
+	onConnectionFunc = std::move(f);
+}
+
+void suc::AsyncServer::onError(std::function<void(const suc_error&)> f)
+{
+	onErrorFunc = std::move(f);
+}
+
+void suc::AsyncServer::onTerminate(std::function<void(void)> f)
+{
+	onTerminateFunc = std::move(f);
 }

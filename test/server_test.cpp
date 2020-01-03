@@ -7,26 +7,36 @@ constexpr int PORT = 1234;
 
 int main()
 {
-	suc::ServerSocket server;
-	server.bind(PORT, suc::IPV4);
-
 	std::vector<suc::ClientSocket> clients;
+	int conCount = 0;
 
-	std::thread([&]() {
-		while (true)
-		{
-			auto client = server.accept();
-			client->sendString("Hi :D");
-			std::cout << "Client has connected.\n";
-			clients.emplace_back(std::move(*client.release()));
+	suc::AsyncServer server(PORT, suc::IPV4);
+	server.onConnection([&](suc::ClientSocket client) {
+		std::vector<suc::sbyte> data(100);
+		for (auto& byte : data) {
+			byte = 'A';
 		}
-	}).detach();
+		client.send(data);
 
-	while(true);
-	server.close();
+		std::cout << "Client has connected.\n";
+		clients.push_back(std::move(client));
+		conCount++;
+	});
+	server.onError([](auto& error) {
+		std::cout << "An error occured in the server: " << error.what() << "\n";
+	});
+	server.onTerminate([]() {
+		std::cout << "Server terminated.\n";
+	});
 
+	server.start();
+	server.stop();
+	server.start();
 
-	std::cout << "\nPress any button to continue...\n";
+	while(conCount < 1);
+	server.stop();
+
+	std::cout << "Press any button to continue...\n";
 	std::cin.get();
 	return 0;
 }

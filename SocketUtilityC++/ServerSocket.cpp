@@ -3,7 +3,6 @@
 #include <cassert>
 #include <iostream>
 #include <string>
-#include <tuple>
 
 #include "ClientSocket.h"
 #include "SucInternals.h"
@@ -56,7 +55,7 @@ void suc::ServerSocket::bind(int port, int family)
 	// Create a new socket
 	socket = suc_socket(family, SOCK_STREAM, 0);
 	if (socket == -1)
-		throw network_error("[Linux] Unable to create a socket.");
+		handleLastError();
 
 	// Bind to localhost
 	memset(&address, 0, sizeof(address));
@@ -76,7 +75,7 @@ void suc::ServerSocket::bind(int port, int family)
 }
 
 
-auto suc::ServerSocket::accept() const -> std::unique_ptr<suc::ClientSocket>
+auto suc::ServerSocket::accept() const -> ClientSocket
 {
 	sockaddr_in clientAddress{};
 	int addressLength = static_cast<int>(sizeof(clientAddress));
@@ -87,10 +86,10 @@ auto suc::ServerSocket::accept() const -> std::unique_ptr<suc::ClientSocket>
 	);
 
 	if (newSock == -1)
-		throw network_error("[Linux] Unable to accept connection.");
+		handleLastError();
 
 	// Create ClientSocket
-	return std::make_unique<ClientSocket>(newSock);
+	return ClientSocket(newSock);
 }
 
 
@@ -99,7 +98,7 @@ void suc::ServerSocket::close()
 	if (_isClosed) { return; }
 
 	if (suc_close(socket))
-		throw network_error("[Linux] Unable to close socket.");
+		handleLastError();
 
 	_isClosed = true;
 }
