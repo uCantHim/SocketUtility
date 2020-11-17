@@ -1,6 +1,6 @@
 #include <iostream>
 
-#include "../SocketUtilityC++/SUC.h"
+#include <suc/SUC.h>
 
 constexpr int PORT = 1234;
 

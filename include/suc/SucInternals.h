@@ -72,13 +72,13 @@ static bool sucWsaInitResult = []() {
 
 
 // SOCKET
-static SOCKET suc_socket(int domain, int type, int protocol)
+static inline SOCKET suc_socket(int domain, int type, int protocol)
 {
 	return socket(domain, type, protocol);
 }
 
 // BIND
-static int suc_bind(SOCKET s, sockaddr* addr, int addrlen)
+static inline int suc_bind(SOCKET s, sockaddr* addr, int addrlen)
 {
 #ifdef OS_IS_WINDOWS
 	return bind(s, addr, addrlen);
@@ -89,13 +89,13 @@ static int suc_bind(SOCKET s, sockaddr* addr, int addrlen)
 }
 
 // LISTEN
-static int suc_listen(SOCKET s, int backlog)
+static inline int suc_listen(SOCKET s, int backlog)
 {
 	return listen(s, backlog);
 }
 
 // ACCEPT
-static SOCKET suc_accept(SOCKET s, sockaddr* addr, int* addrlen)
+static inline SOCKET suc_accept(SOCKET s, sockaddr* addr, int* addrlen)
 {
 #ifdef OS_IS_WINDOWS
 	return accept(s, addr, static_cast<socklen_t*>(addrlen));
@@ -108,7 +108,7 @@ static SOCKET suc_accept(SOCKET s, sockaddr* addr, int* addrlen)
 }
 
 // CONNECT
-static int suc_connect(SOCKET s, sockaddr* addr, int addrlen)
+static inline int suc_connect(SOCKET s, sockaddr* addr, int addrlen)
 {
 #ifdef OS_IS_WINDOWS
 	return connect(s, addr, addrlen);
@@ -119,7 +119,7 @@ static int suc_connect(SOCKET s, sockaddr* addr, int addrlen)
 }
 
 // RECV
-static int suc_recv(SOCKET s, void* buf, size_t len, int flags)
+static inline int suc_recv(SOCKET s, void* buf, size_t len, int flags)
 {
 #ifdef OS_IS_WINDOWS
 	// Cast buffer to char* because Microsoft is retarded
@@ -131,7 +131,7 @@ static int suc_recv(SOCKET s, void* buf, size_t len, int flags)
 }
 
 // SEND
-static int suc_send(SOCKET s, const void* buf, size_t len, int flags)
+static inline int suc_send(SOCKET s, const void* buf, size_t len, int flags)
 {
 #ifdef OS_IS_WINDOWS
 	return send(s, reinterpret_cast<const char*>(buf), static_cast<int>(len), flags);
@@ -142,13 +142,13 @@ static int suc_send(SOCKET s, const void* buf, size_t len, int flags)
 }
 
 // SELECT
-static int suc_select(int nfds, fd_set* readfds, fd_set* writefds, fd_set* exceptfds, timeval* timeout)
+static inline int suc_select(int nfds, fd_set* readfds, fd_set* writefds, fd_set* exceptfds, timeval* timeout)
 {
 	return select(nfds, readfds, writefds, exceptfds, timeout);
 }
 
 // CLOSE
-static int suc_close(SOCKET s)
+static inline int suc_close(SOCKET s)
 {
 #ifdef OS_IS_WINDOWS
 	return closesocket(s);
@@ -159,14 +159,14 @@ static int suc_close(SOCKET s)
 }
 
 
-static addrinfo* translateAddress(
+static inline addrinfo* translateAddress(
 	const std::string& ip_address, int port,
 	int family, int type, int protocol, int flags)
 {
 	std::string portStr = std::to_string(port);
-	addrinfo hints = { 0 };
-	addrinfo* result = nullptr;
-	int iResult = 0;
+	addrinfo hints{};
+	addrinfo* result{ nullptr };
+	int iResult{ 0 };
 
 	hints.ai_family = family;
 	hints.ai_socktype = type;
@@ -206,7 +206,7 @@ static auto getLastError()
 	switch(lastError)
 	{
 	case EACCES:
-		throw suc::suc_error("Access error.");	
+		throw suc::suc_error("Access error.");
 	case EADDRINUSE:
 		throw suc::suc_error("Address in use.");
 	case EBADF:

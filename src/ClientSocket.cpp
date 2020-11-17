@@ -70,7 +70,7 @@ bool suc::ClientSocket::connect(std::string ip, int port, int family)
 
 		handleLastError();
 	}
-    
+
 	// No returned addresses were valid
 	handleLastError();
 }
@@ -102,7 +102,7 @@ auto suc::ClientSocket::recv(int timeout) -> std::vector<sbyte>
 			handleLastError();
 
 		readBytes += read;
-		if (readBytes < buf.size())
+		if (readBytes < static_cast<int>(buf.size()))
 			break;
 
 		buf.resize(buf.size() * 2);

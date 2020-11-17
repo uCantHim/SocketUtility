@@ -151,7 +151,8 @@ namespace suc
 
 
 	/* Split a string */
-	static std::vector<std::string> splitString(const std::string& to_str, const char delimiter)
+	static inline auto splitString(const std::string& to_str, const char delimiter)
+        -> std::vector<std::string>
 	{
 		std::vector<std::string> result;
 		std::stringstream _str;
@@ -165,7 +166,8 @@ namespace suc
 	}
 
 	/* Split a string at a delimiting character sequence. */
-	static std::vector<std::string> splitString(const std::string& str, const std::string& delimiter)
+	static inline auto splitString(const std::string& str, const std::string& delimiter)
+        -> std::vector<std::string>
 	{
 		std::vector<std::string> result;
 
