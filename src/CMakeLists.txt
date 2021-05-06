@@ -1,6 +1,7 @@
 target_sources(
     suc PRIVATE
-	ClientSocket.cpp
-	ServerSocket.cpp
-	Async.cpp
+    Async.cpp
+    ClientSocket.cpp
+    Internals.cpp
+    ServerSocket.cpp
 )

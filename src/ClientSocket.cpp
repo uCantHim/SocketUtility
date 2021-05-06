@@ -1,6 +1,6 @@
 #include "ClientSocket.h"
 
-#include "SucInternals.h"
+#include "Internals.h"
 
 
 
